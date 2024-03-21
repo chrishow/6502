@@ -1,0 +1,36 @@
+{
+    "name": "cpu",
+    "version": "1.0.0",
+    "description": "CPU emulator",
+    "author": "Chris How",
+    "keywords": [
+        "CPU",
+        "6502"
+    ],
+    "devDependencies": {
+        "esbuild-plugin-less": "^1.3.1",
+        "eslint": "^8.52.0"
+    },
+    "scripts": {
+        "build": "node esbuild-compile.mjs",
+        "watch": "node esbuild-watch.mjs",
+        "jshint": "jshint js/scripts.js"
+    },
+    "dependencies": {
+        "@barba/core": "^2.9.7",
+        "aos": "2.3.1",
+        "fastdom": "^1.0.12",
+        "lit": "^3.1.2"
+    },
+    "jshintConfig": {
+        "undef": true,
+        "unused": true,
+        "browser": true,
+        "laxcomma": true,
+        "esversion": 6,
+        "globals": {
+            "console": true,
+            "customElements": true
+        }
+    }
+}
