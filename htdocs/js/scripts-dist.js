@@ -40,6 +40,25 @@
     });
   };
 
+  // htdocs/js/Memory.js
+  var _Memory = class _Memory {
+    constructor() {
+      this.initMemory();
+    }
+    initMemory() {
+      this._mem = new Array(_Memory.MEM_SIZE).fill(0);
+    }
+    readByte(location) {
+      return this._mem[location];
+    }
+    writeByte(location, value) {
+      this._mem[location] = value;
+    }
+  };
+  // static MEM_SIZE = 16 * 1024;
+  __publicField(_Memory, "MEM_SIZE", 128);
+  var Memory = _Memory;
+
   // node_modules/@lit/reactive-element/css-tag.js
   var t = globalThis;
   var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
@@ -684,54 +703,72 @@
   customElements.define("cpu-display-bit", CPUDisplayBit);
 
   // htdocs/js/CPUDisplay.js
-  var CPUDisplay = class extends s3 {
+  var _CPUDisplay = class _CPUDisplay extends s3 {
+    static formatWord(word) {
+      return word.toString(16).padStart(4, "0").toUpperCase();
+    }
+    static formatByte(byte) {
+      return byte.toString(16).padStart(2, "0").toUpperCase();
+    }
     static get properties() {
       return {
-        cpu: {
+        registers: {
           type: Object,
-          reflect: false,
-          attribute: false
+          reflect: true,
+          attribute: true
         }
       };
     }
     constructor() {
       super();
-      this.cpu = {
+      this.registers = {
         pc: 0,
         ac: 0,
         x: 0,
         y: 0,
         sp: 0,
         sr: {
-          n: 1
+          n: 0,
+          v: 0,
+          b: 0,
+          d: 0,
+          i: 0,
+          z: 0,
+          c: 0
         }
       };
     }
     step() {
       this.cpu.step();
     }
+    start() {
+      this.cpu.start();
+    }
+    stop() {
+      this.cpu.stop();
+    }
     // Render the UI as a function of component state
     render() {
       return x`<table>
         <tr>
             <th>PC</th>
-            <td>0x${this.cpu.pc.toString(16).padStart(2, "0")}</td>
+            <td>0x${_CPUDisplay.formatWord(this.registers.pc)}</td>
         </tr>
         <tr>
             <th>AC</th>
-            <td>0x${this.cpu.ac.toString(16).padStart(2, "0")}</td>
+            <td>0x${_CPUDisplay.formatByte(this.registers.ac)}</td>
         </tr>
         <tr>
             <th>X</th>
-            <td>0x${this.cpu.x.toString(16).padStart(2, "0")}</td>
+            <td>0x${_CPUDisplay.formatByte(this.registers.x)}</td>
         </tr>
         <tr>
             <th>Y</th>
-            <td>0x${this.cpu.y.toString(16).padStart(2, "0")}</td>
+            <td>0x${_CPUDisplay.formatByte(this.registers.y)}</td>
         </tr>        
         <tr>
             <th>SP</th>
-            <td>0x${this.cpu.sp.toString(16).padStart(2, "0")}</td>
+            <td>0x${_CPUDisplay.formatByte(this.registers.sp)}</td>
         </tr>
         <tr>
             <th>SR</th>
@@ -748,14 +785,14 @@
                 <th>C</th>
             </tr>
             <tr>
-                <td><cpu-display-bit .bit=${this.cpu.sr.n}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.v}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.n}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.v}></cpu-display-bit></td>
                 <td>-</td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.b}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.d}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.i}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.z}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.c}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.b}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.d}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.i}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.z}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.c}></cpu-display-bit></td>
             </tr>
         </table>
             </td>
@@ -763,12 +800,32 @@
         
     </table>
     <button @click="${this.step}">Step</button>
+    <button @click="${this.start}">Start</button>
+    <button @click="${this.stop}">Stop</button>
 `;
     }
   };
-  __publicField(CPUDisplay, "styles", i`
+  __publicField(_CPUDisplay, "styles", i`
+        :root {
+            color: var(--fg-color);
+            background-color: var(--bg-color);
+        }
+
+        table,
+        button {
+            color: var(--fg-color);
+            background-color: var(--bg-color);
+            appearance: none;
+            font-family: var(--font-family);
+        }
+
+        button {
+            padding: 0.5em;
+        }
+
 		table {
-			background-color: #ddd;
+			background-color: #999;
+            margin-bottom: 0.5em;
 		}
 
 		th {
@@ -777,8 +834,9 @@
 
 		th, 
 		td {
-			background-color: white;
-			padding: 0.2em;
+			background-color: var(--bg-color);
+            color: var(--fg-color);
+			padding: 0.5em;
 		}
 
         table.flags th, 
@@ -786,39 +844,33 @@
             text-align: center;
         }
 	`);
+  var CPUDisplay = _CPUDisplay;
   customElements.define("cpu-display", CPUDisplay);
 
-  // htdocs/js/Memory.js
-  var _Memory = class _Memory {
-    constructor() {
-      this.initMemory();
-    }
-    initMemory() {
-      this._mem = new Array(_Memory.MEM_SIZE).fill(0);
-    }
-    readByte(location) {
-      return this._mem[location];
-    }
-    writeByte(location, value) {
-      this._mem[location] = value;
-    }
-  };
-  // static MEM_SIZE = 16 * 1024;
-  __publicField(_Memory, "MEM_SIZE", 128);
-  var Memory = _Memory;
-
   // htdocs/js/CPU.js
-  var _CPU = class _CPU {
+  var _CPU = class _CPU extends EventTarget {
     static dec2hexByte(dec) {
       return dec.toString(16).padStart(2, "0").toUpperCase();
     }
-    constructor() {
+    constructor(options) {
+      super();
       this.initRegisters();
       this.initMemory();
+      this.display = void 0;
+      if (options.displayContainer) {
+        this.display = document.createElement("cpu-display");
+        this.display.cpu = this;
+        options.displayContainer.append(this.display);
+        this.addEventListener("update", () => this.updateDisplay());
+      }
+      this.addEventListener("tick", () => {
+        this.fetchAndExecute();
+        this.updateDisplay();
+      });
       return this;
     }
     initRegisters() {
-      const registers = {
+      this.registers = {
         pc: 0,
         ac: 0,
         x: 0,
@@ -834,26 +886,32 @@
           c: 0
         }
       };
-      for (const property in registers) {
-        this[property] = registers[property];
-      }
     }
     initMemory() {
       this.memory = new Memory();
     }
     fetchAndExecute() {
-      const opcode = this.memory.readByte(this.pc);
-      this.pc++;
-      console.log(`Got opcode '${_CPU.dec2hexByte(opcode)}' from PC ${this.pc}`);
+      const opcode = this.memory.readByte(this.registers.pc);
+      console.log(`Got opcode  '${_CPU.dec2hexByte(opcode)}' from PC ${this.registers.pc}`);
+      this.registers.pc++;
       this.execute(opcode);
     }
     execute(opcode) {
       switch (opcode) {
         case 162:
-          const operand = this.memory.readByte(this.pc);
-          this.pc++;
-          this.ac = operand;
+          console.log("LDA %");
+          const operand = this.memory.readByte(this.registers.pc);
+          this.registers.pc++;
+          this.registers.ac = operand;
           this.updateFlags(operand);
+          break;
+        case 76:
+          console.log("JMP");
+          const low = this.memory.readByte(this.registers.pc);
+          this.registers.pc++;
+          const high = this.memory.readByte(this.registers.pc);
+          const jumpAddress = (high << 8) + low;
+          this.registers.pc = jumpAddress;
           break;
         default:
           alert(`Unknown opcode '${opcode}'`);
@@ -861,18 +919,41 @@
     }
     updateFlags(operand) {
       if (operand == 0) {
-        this.sr.z = 1;
+        this.registers.sr.z = 1;
       } else {
-        this.sr.z = 0;
+        this.registers.sr.z = 0;
       }
       if (!!(operand & 1 << 7)) {
-        this.sr.n = 1;
+        this.registers.sr.n = 1;
       } else {
-        this.sr.n = 0;
+        this.registers.sr.n = 0;
       }
     }
     step() {
       console.log("Step");
+      this.dispatchEvent(new CustomEvent("tick"));
+    }
+    start() {
+      console.log("Start");
+      if (this.clockTimeout) {
+        clearTimeout(this.clockTimeout);
+      }
+      this.clockTimeout = setInterval(() => {
+        this.dispatchEvent(new CustomEvent("tick"));
+      }, _CPU.TICKS_PER_CLOCK);
+    }
+    stop() {
+      console.log("Stop");
+      clearTimeout(this.clockTimeout);
+    }
+    updateDisplay() {
+      if (this.display) {
+        const registers = __spreadValues({}, this.registers);
+        for (const flag in this.registers.sr) {
+          registers.sr[flag] = this.registers.sr[flag];
+        }
+        this.display.registers = registers;
+      }
     }
   };
   __publicField(_CPU, "TICKS_PER_CLOCK", 100);
@@ -880,30 +961,19 @@
 
   // htdocs/js/scripts.js
   document.addEventListener("DOMContentLoaded", function() {
-    const cpu = new CPU();
-    const displayElement = document.querySelector("cpu-display");
-    displayElement.cpu = cpu;
-    cpu.memory.writeByte(0, 162);
-    cpu.memory.writeByte(1, 129);
-    cpu.fetchAndExecute();
-    displayElement.addEventListener("blinkLights", (e4) => {
-      const displayElement2 = e4.target;
-      for (const flag in displayElement2.cpu.sr) {
-        displayElement2.cpu.sr[flag] = Math.round(Math.random());
-      }
-      ["pc", "ac", "x", "y", "sp"].forEach((register) => {
-        cpu[register] = Math.round(Math.random() * 100);
-      });
-      displayElement2.cpu = cloneCpuData(cpu);
+    const displayElement = document.querySelector(".display");
+    const cpu = new CPU({
+      displayContainer: displayElement
     });
+    let PC = 0;
+    cpu.memory.writeByte(PC++, 162);
+    cpu.memory.writeByte(PC++, 243);
+    cpu.memory.writeByte(PC++, 162);
+    cpu.memory.writeByte(PC++, 0);
+    cpu.memory.writeByte(PC++, 76);
+    cpu.memory.writeByte(PC++, 0);
+    cpu.memory.writeByte(PC++, 0);
   });
-  function cloneCpuData(cpu) {
-    const newCpu = __spreadValues({}, cpu);
-    for (const flag in cpu.sr) {
-      newCpu.sr[flag] = cpu.sr[flag];
-    }
-    return newCpu;
-  }
 })();
 /*! Bundled license information:
 

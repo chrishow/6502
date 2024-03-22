@@ -1,59 +1,23 @@
-import { CPUDisplay } from "./CPUDisplay.js";
 import { CPU } from './CPU.js';
 
 
 
 document.addEventListener("DOMContentLoaded", function () {
 
-	const cpu = new CPU;
+	const displayElement = document.querySelector('.display');
 
-	const displayElement = document.querySelector('cpu-display');
-
-	displayElement.cpu = cpu;
-
-	cpu.memory.writeByte(0, 0xA2); // LDA immediate
-	cpu.memory.writeByte(1, 0x81); // Operand
-	cpu.fetchAndExecute();
-
-	// console.log('displayElement.cpu.memory', displayElement.cpu.memory);
-
-
-	displayElement.addEventListener('blinkLights', (e) => {
-		const displayElement = e.target;
-		for (const flag in displayElement.cpu.sr) {
-			displayElement.cpu.sr[flag] = Math.round(Math.random());
-		}
-
-		['pc', 'ac', 'x', 'y', 'sp'].forEach((register) => {
-			cpu[register] = Math.round(Math.random()*100);
-		});
-
-		displayElement.cpu = cloneCpuData(cpu);
-		// displayElement.cpu = cpu;
-
-
-
-		// console.log(displayElement.cpu.sr);
+	const cpu = new CPU({
+		displayContainer: displayElement
 	});
 
-	
-	// displayElement.dispatchEvent(new CustomEvent('blinkLights'));
+	let PC = 0;
 
-	// setInterval(() => {
-	// 	displayElement.dispatchEvent(new CustomEvent('blinkLights'));
-	// }, 1000);
 
+	cpu.memory.writeByte(PC++, 0xA2); // LDA immediate
+	cpu.memory.writeByte(PC++, 0xF3); // Operand
+	cpu.memory.writeByte(PC++, 0xA2); // LDA immediate
+	cpu.memory.writeByte(PC++, 0x00); // Operand
+	cpu.memory.writeByte(PC++, 0x4C); // JMP
+	cpu.memory.writeByte(PC++, 0x00); // Low 
+	cpu.memory.writeByte(PC++, 0x00); // High
 });
-
-function cloneCpuData(cpu) {
-	// Make a new copy
-	const newCpu = {...cpu};
-
-	for(const flag in cpu.sr) {
-		newCpu.sr[flag] = cpu.sr[flag];
-	}
-	
-	// console.log(newCpu);
-
-	return newCpu;
-}

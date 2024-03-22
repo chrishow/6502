@@ -11,10 +11,24 @@
     "Fira Mono", 
     "Droid Sans Mono", 
     "Courier New", monospace;
+    font-family: var(--monospace-font-stack);
 }
 
 html {
     font-family: var(--monospace-font-stack);
+
+    --fg-color: #170303;
+    --fg-color:red;
+    --bg-color: white;
+
+    &.dark {
+        --fg-color: white;
+        --bg-color: #111;
+    }
+
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+
 }
 
 body {

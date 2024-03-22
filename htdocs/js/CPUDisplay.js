@@ -2,18 +2,44 @@ import { LitElement, css, html } from 'lit';
 import { CPUDisplayBit } from './CPUDisplayBit';
 
 export class CPUDisplay extends LitElement {
-	static get properties() { return {
-		cpu: { 
+    static formatWord(word) {
+        return word.toString(16).padStart(4, '0').toUpperCase();
+    }
+
+    static formatByte(byte) {
+        return byte.toString(16).padStart(2, '0').toUpperCase();
+    }
+
+    static get properties() { return {
+		registers: { 
             type: Object, 
-            reflect: false, 
-            attribute: false,            
-        },
+            reflect: true, 
+            attribute: true,            
+        }
 	  }
 	;}
 
 	static styles = css`
+        :root {
+            color: var(--fg-color);
+            background-color: var(--bg-color);
+        }
+
+        table,
+        button {
+            color: var(--fg-color);
+            background-color: var(--bg-color);
+            appearance: none;
+            font-family: var(--font-family);
+        }
+
+        button {
+            padding: 0.5em;
+        }
+
 		table {
-			background-color: #ddd;
+			background-color: #999;
+            margin-bottom: 0.5em;
 		}
 
 		th {
@@ -22,8 +48,9 @@ export class CPUDisplay extends LitElement {
 
 		th, 
 		td {
-			background-color: white;
-			padding: 0.2em;
+			background-color: var(--bg-color);
+            color: var(--fg-color);
+			padding: 0.5em;
 		}
 
         table.flags th, 
@@ -35,44 +62,60 @@ export class CPUDisplay extends LitElement {
 	constructor() {
 		super();
 		// Declare reactive properties
-		this.cpu = {
+		this.registers = {
             pc: 0,
             ac: 0,
             x: 0,
             y: 0,
             sp: 0,
-			sr: {
-                n: 1
+            sr: {
+                n: 0,
+                v: 0,
+                b: 0,
+                d: 0,
+                i: 0,
+                z: 0,
+                c: 0
             }
-		};
+        };
 	}
 
     step() {
+        // console.log(this.cpu);
         this.cpu.step();
     }
+
+    start() {
+        this.cpu.start();
+    }
+
+    stop() {
+        this.cpu.stop();
+    }
+
 
 	// Render the UI as a function of component state
 	render() {
 		return html`<table>
         <tr>
             <th>PC</th>
-            <td>0x${this.cpu.pc.toString(16).padStart(2, '0')}</td>
+            <td>0x${CPUDisplay.formatWord(this.registers.pc)}</td>
         </tr>
         <tr>
             <th>AC</th>
-            <td>0x${this.cpu.ac.toString(16).padStart(2, '0')}</td>
+            <td>0x${CPUDisplay.formatByte(this.registers.ac)}</td>
         </tr>
         <tr>
             <th>X</th>
-            <td>0x${this.cpu.x.toString(16).padStart(2, '0')}</td>
+            <td>0x${CPUDisplay.formatByte(this.registers.x)}</td>
         </tr>
         <tr>
             <th>Y</th>
-            <td>0x${this.cpu.y.toString(16).padStart(2, '0')}</td>
+            <td>0x${CPUDisplay.formatByte(this.registers.y)}</td>
         </tr>        
         <tr>
             <th>SP</th>
-            <td>0x${this.cpu.sp.toString(16).padStart(2, '0')}</td>
+            <td>0x${CPUDisplay.formatByte(this.registers.sp)}</td>
         </tr>
         <tr>
             <th>SR</th>
@@ -89,14 +132,14 @@ export class CPUDisplay extends LitElement {
                 <th>C</th>
             </tr>
             <tr>
-                <td><cpu-display-bit .bit=${this.cpu.sr.n}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.v}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.n}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.v}></cpu-display-bit></td>
                 <td>-</td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.b}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.d}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.i}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.z}></cpu-display-bit></td>
-                <td><cpu-display-bit .bit=${this.cpu.sr.c}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.b}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.d}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.i}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.z}></cpu-display-bit></td>
+                <td><cpu-display-bit .bit=${this.registers.sr.c}></cpu-display-bit></td>
             </tr>
         </table>
             </td>
@@ -104,6 +147,8 @@ export class CPUDisplay extends LitElement {
         
     </table>
     <button @click="${this.step}">Step</button>
+    <button @click="${this.start}">Start</button>
+    <button @click="${this.stop}">Stop</button>
 `;
 	}
 }
