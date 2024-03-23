@@ -9,7 +9,9 @@
 
 	<h1>6502</h1>
 
-    <!-- <cpu-display></cpu-display> -->
+	<p>
+		<a href='https://github.com/chrishow/6502'>View on GitHub</a>
+	</p>
 
 	<div class=display></div>
 

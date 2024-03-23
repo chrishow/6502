@@ -178,5 +178,8 @@ body {
   font-size: 1rem;
   padding: 0.5em;
 }
+.display {
+  margin-top: 1em;
+}
 /*! modern-normalize v2.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
 /*# sourceMappingURL=styles.css.map */
