@@ -861,7 +861,7 @@
       this.initRegisters();
       this.initMemory();
       this.initZeroTimeoutQueue();
-      this.tickAvailable = false;
+      this.ticksAvailable = 0;
       this.isRunning = false;
       this.tickCount = 0;
       this.display = void 0;
@@ -871,17 +871,19 @@
         options.displayContainer.append(this.display);
       }
       this.addEventListener("tick", () => {
-        this.tickAvailable = true;
+        this.ticksAvailable++;
+        this.tickCount++;
       });
       this.addEventListener("fetchAndExecute", () => {
-        this.waitAndDo(() => {
+        const ticksRequired = this.fetch();
+        console.log("ticksRequired: " + ticksRequired);
+        this.waitAndDo(ticksRequired, () => {
           this.fetchAndExecute();
           this.updateDisplay();
         }).then(() => {
           this.dispatchEvent(new CustomEvent("fetchAndExecute"));
         });
       });
-      this.dispatchEvent(new CustomEvent("fetchAndExecute"));
       return this;
     }
     initRegisters() {
@@ -905,28 +907,41 @@
     initMemory() {
       this.memory = new Memory();
     }
+    boot() {
+      this.dispatchEvent(new CustomEvent("fetchAndExecute"));
+    }
     fetchAndExecute() {
       const opcode = this.memory.readByte(this.registers.pc);
       console.log(`Got opcode  '${_CPU.dec2hexByte(opcode)}' from PC ${this.registers.pc}`);
       this.registers.pc++;
       this.execute(opcode);
     }
+    fetch() {
+      const opcode = this.memory.readByte(this.registers.pc);
+      switch (opcode) {
+        case 162:
+          return 2;
+        case 76:
+          return 3;
+        default:
+          console.log(`Unknown opcode '${opcode}' at PC: ${this.registers.pc} `);
+      }
+    }
     execute(opcode) {
       switch (opcode) {
         case 162:
           console.log("LDA %");
-          const operand = this.memory.readByte(this.registers.pc);
+          const operand = this.memory.readByte(this.registers.pc++);
           console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
-          this.registers.pc++;
           this.registers.ac = operand;
           this.updateFlags(operand);
           break;
         case 76:
           console.log("JMP");
-          const low = this.memory.readByte(this.registers.pc);
-          this.registers.pc++;
+          const low = this.memory.readByte(this.registers.pc++);
           const high = this.memory.readByte(this.registers.pc);
           const jumpAddress = (high << 8) + low;
+          console.log(`jump to address: ${_CPU.dec2hexByte(jumpAddress)}`);
           this.registers.pc = jumpAddress;
           break;
         default:
@@ -948,6 +963,7 @@
     step() {
       console.log("Step");
       this.dispatchEvent(new CustomEvent("tick"));
+      this.updateDisplay();
     }
     start() {
       console.log("Start");
@@ -964,15 +980,14 @@
       this.isRunning = false;
       clearTimeout(this.clockTimeout);
     }
-    waitAndDo(instruction) {
-      return this.waitForTick().then(instruction);
+    waitAndDo(ticks, instruction) {
+      return this.waitForTicks(ticks).then(instruction);
     }
-    waitForTick(resolve) {
+    waitForTicks(ticksRequired, resolve) {
       return new Promise((resolve2, reject) => {
         const checkForTick = () => {
-          if (this.tickAvailable) {
-            this.tickAvailable = false;
-            this.tickCount++;
+          if (this.ticksAvailable >= ticksRequired) {
+            this.ticksAvailable -= ticksRequired;
             resolve2();
           } else {
             if (this.isRunning) {
@@ -1032,6 +1047,7 @@
     cpu.memory.writeByte(PC++, 76);
     cpu.memory.writeByte(PC++, 0);
     cpu.memory.writeByte(PC++, 0);
+    cpu.boot();
   });
 })();
 /*! Bundled license information:

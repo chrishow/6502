@@ -20,4 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	cpu.memory.writeByte(PC++, 0x4C); // JMP
 	cpu.memory.writeByte(PC++, 0x00); // Low 
 	cpu.memory.writeByte(PC++, 0x00); // High
+
+
+	cpu.boot();
 });

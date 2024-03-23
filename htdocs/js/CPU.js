@@ -14,7 +14,7 @@ export class CPU extends EventTarget {
         this.initMemory();
         this.initZeroTimeoutQueue();
 
-        this.tickAvailable = false;
+        this.ticksAvailable = 0;
         this.isRunning = false;
         this.tickCount = 0;
 
@@ -29,19 +29,20 @@ export class CPU extends EventTarget {
         }
 
         this.addEventListener('tick', () => {
-            this.tickAvailable = true;
+            this.ticksAvailable++;
+            this.tickCount++;
         });
 
         this.addEventListener('fetchAndExecute', () => {
-            this.waitAndDo(() => {
+            const ticksRequired = this.fetch();
+            console.log('ticksRequired: ' + ticksRequired);
+            this.waitAndDo(ticksRequired, () => {
                 this.fetchAndExecute();
                 this.updateDisplay();
             }).then(() => {
                 this.dispatchEvent(new CustomEvent('fetchAndExecute'));
             });    
-        })
-
-        this.dispatchEvent(new CustomEvent('fetchAndExecute'));
+        })        
 
         return this;
     }
@@ -69,6 +70,10 @@ export class CPU extends EventTarget {
         this.memory = new Memory;
     }
 
+    boot() {
+        this.dispatchEvent(new CustomEvent('fetchAndExecute'));
+    }
+
     fetchAndExecute() {
         const opcode = this.memory.readByte(this.registers.pc);
 
@@ -77,32 +82,43 @@ export class CPU extends EventTarget {
         this.execute(opcode);
     }
 
+
+    fetch() {
+        const opcode = this.memory.readByte(this.registers.pc);
+
+        switch (opcode) {
+            case 0xA2: // LDA immediate
+                return 2; // ticks
+            
+            case 0x4C: // JMP
+                return 3; // ticks
+            
+            default: 
+                console.log(`Unknown opcode '${opcode}' at PC: ${this.registers.pc} `);
+        }
+    }
+
     execute(opcode) {
         switch (opcode) {
             case 0xA2: // LDA immediate
                     console.log('LDA %');
-                    const operand = this.memory.readByte(this.registers.pc);
+                    const operand = this.memory.readByte(this.registers.pc++);
                     console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
-                    this.registers.pc++;
+
                     this.registers.ac = operand;
                     this.updateFlags(operand);
                 break;
 
             case 0x4C: // JMP
                     console.log('JMP');
-                    // NEED TO WAIT HERE
-                    const low = this.memory.readByte(this.registers.pc);
-                    // console.log(`Low byte: ${CPU.dec2hexByte(low)}`);
-                    this.registers.pc++;
-                    // NEED TO WAIT HERE
+
+                    const low = this.memory.readByte(this.registers.pc++);
                     const high = this.memory.readByte(this.registers.pc);
-                    // console.log(`Low byte: ${CPU.dec2hexByte(high)}`);
 
                     const jumpAddress = (high << 8) + low;
 
-                    // console.log(`jumpAddress: ${CPU.dec2hexByte(jumpAddress)}`)
+                    console.log(`jump to address: ${CPU.dec2hexByte(jumpAddress)}`)
 
-                    // NEED TO WAIT HERE
                     // Do the jump
                     this.registers.pc = jumpAddress;
                 break;
@@ -130,6 +146,7 @@ export class CPU extends EventTarget {
     step() {
         console.log('Step');
         this.dispatchEvent(new CustomEvent('tick'));
+        this.updateDisplay(); // To show new tick count
     }
 
     start() {
@@ -150,17 +167,16 @@ export class CPU extends EventTarget {
         clearTimeout(this.clockTimeout);
     }
 
-    waitAndDo(instruction) {
-        return this.waitForTick().then(instruction);
+    waitAndDo(ticks, instruction) {
+        return this.waitForTicks(ticks).then(instruction);
     }
 
-    waitForTick(resolve) {
+    waitForTicks(ticksRequired, resolve) {
         return new Promise((resolve, reject) => {
             const checkForTick = () => {
-                if (this.tickAvailable) {
+                if (this.ticksAvailable >= ticksRequired) {
                     // console.log('Tick available! 😄');
-                    this.tickAvailable = false;
-                    this.tickCount++;
+                    this.ticksAvailable -= ticksRequired;
                     resolve();
                 } else {
                     if(this.isRunning) {
