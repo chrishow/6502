@@ -2,7 +2,7 @@ import { Memory } from './Memory.js';
 import { CPUDisplay } from "./CPUDisplay.js";
 
 export class CPU extends EventTarget {
-    static TICKS_PER_CLOCK = 100;
+    static TICKS_PER_CLOCK = 1;
 
     static dec2hexByte(dec) {
         return dec.toString(16).padStart(2, '0').toUpperCase();
@@ -12,22 +12,36 @@ export class CPU extends EventTarget {
         super();
         this.initRegisters();
         this.initMemory();
+        this.initZeroTimeoutQueue();
+
+        this.tickAvailable = false;
+        this.isRunning = false;
+        this.tickCount = 0;
 
         this.display = undefined;
 
-        if(options.displayContainer) {
+        if (options.displayContainer) {
             this.display = document.createElement('cpu-display');
             this.display.cpu = this;
 
             options.displayContainer.append(this.display);
-            this.addEventListener('update', () => this.updateDisplay());
+            // this.addEventListener('update', () => this.updateDisplay());
         }
 
         this.addEventListener('tick', () => {
-            this.fetchAndExecute();
-            this.updateDisplay();
+            this.tickAvailable = true;
         });
 
+        this.addEventListener('fetchAndExecute', () => {
+            this.waitAndDo(() => {
+                this.fetchAndExecute();
+                this.updateDisplay();
+            }).then(() => {
+                this.dispatchEvent(new CustomEvent('fetchAndExecute'));
+            });    
+        })
+
+        this.dispatchEvent(new CustomEvent('fetchAndExecute'));
 
         return this;
     }
@@ -64,49 +78,49 @@ export class CPU extends EventTarget {
     }
 
     execute(opcode) {
-        switch(opcode) {
+        switch (opcode) {
             case 0xA2: // LDA immediate
-                console.log('LDA %');
-                const operand = this.memory.readByte(this.registers.pc);
-                // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
-                this.registers.pc++;
-                this.registers.ac = operand;
-                this.updateFlags(operand);
+                    console.log('LDA %');
+                    const operand = this.memory.readByte(this.registers.pc);
+                    console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
+                    this.registers.pc++;
+                    this.registers.ac = operand;
+                    this.updateFlags(operand);
                 break;
 
             case 0x4C: // JMP
-                console.log('JMP');
-                // NEED TO WAIT HERE
-                const low = this.memory.readByte(this.registers.pc);
-                // console.log(`Low byte: ${CPU.dec2hexByte(low)}`);
-                this.registers.pc++;
-                // NEED TO WAIT HERE
-                const high = this.memory.readByte(this.registers.pc);
-                // console.log(`Low byte: ${CPU.dec2hexByte(high)}`);
+                    console.log('JMP');
+                    // NEED TO WAIT HERE
+                    const low = this.memory.readByte(this.registers.pc);
+                    // console.log(`Low byte: ${CPU.dec2hexByte(low)}`);
+                    this.registers.pc++;
+                    // NEED TO WAIT HERE
+                    const high = this.memory.readByte(this.registers.pc);
+                    // console.log(`Low byte: ${CPU.dec2hexByte(high)}`);
 
-                const jumpAddress = (high << 8) + low;
+                    const jumpAddress = (high << 8) + low;
 
-                // console.log(`jumpAddress: ${CPU.dec2hexByte(jumpAddress)}`)
-                
-                // NEED TO WAIT HERE
-                // Do the jump
-                this.registers.pc = jumpAddress;
+                    // console.log(`jumpAddress: ${CPU.dec2hexByte(jumpAddress)}`)
+
+                    // NEED TO WAIT HERE
+                    // Do the jump
+                    this.registers.pc = jumpAddress;
                 break;
-                
+
 
             default:
-                alert(`Unknown opcode '${opcode}'`);
+                alert(`Unknown opcode '${CPU.dec2hexByte(opcode)}', PC: ${this.registers.pc}`);
         }
     }
 
     updateFlags(operand) {
-        if(operand == 0) { // Zero flag (Z)
+        if (operand == 0) { // Zero flag (Z)
             this.registers.sr.z = 1;
         } else {
             this.registers.sr.z = 0;
         }
 
-        if(!!(operand & (1<<7))) { // Negative flag (N). Bit 7 of operand is 1
+        if (!!(operand & (1 << 7))) { // Negative flag (N). Bit 7 of operand is 1
             this.registers.sr.n = 1;
         } else {
             this.registers.sr.n = 0;
@@ -120,32 +134,82 @@ export class CPU extends EventTarget {
 
     start() {
         console.log('Start');
-        if(this.clockTimeout) {
+        if (this.clockTimeout) {
             clearTimeout(this.clockTimeout);
         }
 
         this.clockTimeout = setInterval(() => {
+            this.isRunning = true;
             this.dispatchEvent(new CustomEvent('tick'));
         }, CPU.TICKS_PER_CLOCK);
     }
 
     stop() {
         console.log('Stop');
+        this.isRunning = false;
         clearTimeout(this.clockTimeout);
     }
 
-    
+    waitAndDo(instruction) {
+        return this.waitForTick().then(instruction);
+    }
+
+    waitForTick(resolve) {
+        return new Promise((resolve, reject) => {
+            const checkForTick = () => {
+                if (this.tickAvailable) {
+                    // console.log('Tick available! 😄');
+                    this.tickAvailable = false;
+                    this.tickCount++;
+                    resolve();
+                } else {
+                    if(this.isRunning) {
+                        this.newZeroTimeout(checkForTick);
+                    } else {
+                        // Give the processor a break 😂
+                        setTimeout(() => {
+                            this.newZeroTimeout(checkForTick);
+                        }, 100);
+                    }
+                    return false;
+                }
+            };
+
+            this.newZeroTimeout(checkForTick);
+        });
+    }
+
+    initZeroTimeoutQueue() {
+        this.timeoutsQueue = [];
+
+        window.addEventListener("message", (event) =>  {
+            if (event.source == window && event.data == 'zeroTimeoutPushed') {
+                event.stopPropagation();
+                if (this.timeoutsQueue.length > 0) {
+                    var fn = this.timeoutsQueue.shift();
+                    fn();
+                }
+            }
+        }, true);
+    }
+
+    newZeroTimeout(fn) {
+        // console.log('pushed fn to timeoutsQueue:', fn);
+        this.timeoutsQueue.push(fn);
+        window.postMessage('zeroTimeoutPushed', "*");
+    }
 
     updateDisplay() {
-        if(this.display) {
+        if (this.display) {
             // Make a new copy of the registers to pass to display
-            const registers = {...this.registers};
+            const registers = { ...this.registers };
 
-            for(const flag in this.registers.sr) {
+            for (const flag in this.registers.sr) {
                 registers.sr[flag] = this.registers.sr[flag];
             }
-        
+
             this.display.registers = registers;
+            this.display.ticks = this.tickCount;
         }
     }
 }

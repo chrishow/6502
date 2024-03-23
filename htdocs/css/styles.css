@@ -160,7 +160,6 @@ img {
 html {
   font-family: var(--monospace-font-stack);
   --fg-color: #170303;
-  --fg-color: red;
   --bg-color: white;
   background-color: var(--bg-color);
   color: var(--fg-color);
@@ -168,6 +167,12 @@ html {
 html.dark {
   --fg-color: white;
   --bg-color: #111;
+}
+@media (prefers-color-scheme: dark) {
+  html {
+    --fg-color: white;
+    --bg-color: #111;
+  }
 }
 body {
   font-size: 1rem;

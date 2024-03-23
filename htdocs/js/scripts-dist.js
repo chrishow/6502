@@ -797,6 +797,10 @@
         </table>
             </td>
         </tr>
+        <tr>
+            <th>C/S</th>
+            <td>${this.ticks}</td>
+        </tr>
         
     </table>
     <button @click="${this.step}">Step</button>
@@ -856,17 +860,28 @@
       super();
       this.initRegisters();
       this.initMemory();
+      this.initZeroTimeoutQueue();
+      this.tickAvailable = false;
+      this.isRunning = false;
+      this.tickCount = 0;
       this.display = void 0;
       if (options.displayContainer) {
         this.display = document.createElement("cpu-display");
         this.display.cpu = this;
         options.displayContainer.append(this.display);
-        this.addEventListener("update", () => this.updateDisplay());
       }
       this.addEventListener("tick", () => {
-        this.fetchAndExecute();
-        this.updateDisplay();
+        this.tickAvailable = true;
       });
+      this.addEventListener("fetchAndExecute", () => {
+        this.waitAndDo(() => {
+          this.fetchAndExecute();
+          this.updateDisplay();
+        }).then(() => {
+          this.dispatchEvent(new CustomEvent("fetchAndExecute"));
+        });
+      });
+      this.dispatchEvent(new CustomEvent("fetchAndExecute"));
       return this;
     }
     initRegisters() {
@@ -901,6 +916,7 @@
         case 162:
           console.log("LDA %");
           const operand = this.memory.readByte(this.registers.pc);
+          console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
           this.registers.pc++;
           this.registers.ac = operand;
           this.updateFlags(operand);
@@ -914,7 +930,7 @@
           this.registers.pc = jumpAddress;
           break;
         default:
-          alert(`Unknown opcode '${opcode}'`);
+          alert(`Unknown opcode '${_CPU.dec2hexByte(opcode)}', PC: ${this.registers.pc}`);
       }
     }
     updateFlags(operand) {
@@ -939,12 +955,54 @@
         clearTimeout(this.clockTimeout);
       }
       this.clockTimeout = setInterval(() => {
+        this.isRunning = true;
         this.dispatchEvent(new CustomEvent("tick"));
       }, _CPU.TICKS_PER_CLOCK);
     }
     stop() {
       console.log("Stop");
+      this.isRunning = false;
       clearTimeout(this.clockTimeout);
+    }
+    waitAndDo(instruction) {
+      return this.waitForTick().then(instruction);
+    }
+    waitForTick(resolve) {
+      return new Promise((resolve2, reject) => {
+        const checkForTick = () => {
+          if (this.tickAvailable) {
+            this.tickAvailable = false;
+            this.tickCount++;
+            resolve2();
+          } else {
+            if (this.isRunning) {
+              this.newZeroTimeout(checkForTick);
+            } else {
+              setTimeout(() => {
+                this.newZeroTimeout(checkForTick);
+              }, 100);
+            }
+            return false;
+          }
+        };
+        this.newZeroTimeout(checkForTick);
+      });
+    }
+    initZeroTimeoutQueue() {
+      this.timeoutsQueue = [];
+      window.addEventListener("message", (event) => {
+        if (event.source == window && event.data == "zeroTimeoutPushed") {
+          event.stopPropagation();
+          if (this.timeoutsQueue.length > 0) {
+            var fn = this.timeoutsQueue.shift();
+            fn();
+          }
+        }
+      }, true);
+    }
+    newZeroTimeout(fn) {
+      this.timeoutsQueue.push(fn);
+      window.postMessage("zeroTimeoutPushed", "*");
     }
     updateDisplay() {
       if (this.display) {
@@ -953,10 +1011,11 @@
           registers.sr[flag] = this.registers.sr[flag];
         }
         this.display.registers = registers;
+        this.display.ticks = this.tickCount;
       }
     }
   };
-  __publicField(_CPU, "TICKS_PER_CLOCK", 100);
+  __publicField(_CPU, "TICKS_PER_CLOCK", 1);
   var CPU = _CPU;
 
   // htdocs/js/scripts.js

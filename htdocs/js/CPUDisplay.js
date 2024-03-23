@@ -144,6 +144,10 @@ export class CPUDisplay extends LitElement {
         </table>
             </td>
         </tr>
+        <tr>
+            <th>C/S</th>
+            <td>${this.ticks}</td>
+        </tr>
         
     </table>
     <button @click="${this.step}">Step</button>

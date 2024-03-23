@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class=dark>
+<html lang="en">
 <head>
 	<meta charset="utf-8">
 	<title>CPU</title>
@@ -7,7 +7,7 @@
 </head>
 <body>
 
-	<h1>CPU</h1>
+	<h1>6502</h1>
 
     <!-- <cpu-display></cpu-display> -->
 
