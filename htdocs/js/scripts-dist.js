@@ -944,6 +944,22 @@
       const opcode = this.memory.readByte(this.registers.pc);
       let f3;
       switch (opcode) {
+        case 105:
+          f3 = () => {
+            console.log("ADC %");
+            const operand = this.memory.readByte(this.registers.pc + 1);
+            console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
+            this.registers.ac += operand;
+            if (this.registers.ac > 255) {
+              this.registers.ac -= 255;
+              this.registers.sr.c = 1;
+            } else {
+              this.registers.sr.c = 0;
+            }
+            this.updateFlags(this.registers.ac);
+            this.registers.pc += 2;
+          };
+          return [2, f3];
         case 162:
           f3 = () => {
             console.log("LDA %");
@@ -972,13 +988,13 @@
      * Updates the 6502 SR register flags 
      * 
      */
-    updateFlags(operand) {
-      if (operand == 0) {
+    updateFlags(result) {
+      if (result == 0) {
         this.registers.sr.z = 1;
       } else {
         this.registers.sr.z = 0;
       }
-      if (!!(operand & 1 << 7)) {
+      if (!!(result & 1 << 7)) {
         this.registers.sr.n = 1;
       } else {
         this.registers.sr.n = 0;
@@ -1091,10 +1107,8 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.writeByte(PC++, 162);
-    cpu.memory.writeByte(PC++, 243);
-    cpu.memory.writeByte(PC++, 162);
-    cpu.memory.writeByte(PC++, 0);
+    cpu.memory.writeByte(PC++, 105);
+    cpu.memory.writeByte(PC++, 1);
     cpu.memory.writeByte(PC++, 76);
     cpu.memory.writeByte(PC++, 0);
     cpu.memory.writeByte(PC++, 0);

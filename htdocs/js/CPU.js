@@ -25,7 +25,7 @@ export class CPU extends EventTarget {
             this.display = document.createElement('cpu-display');
             this.display.cpu = this;
             this.display.memory = this.memory;
-            
+
             options.displayContainer.append(this.display);
         }
 
@@ -89,6 +89,50 @@ export class CPU extends EventTarget {
         let f;
 
         switch (opcode) {
+            /**
+             * This instruction adds the value of memory and carry from the previous operation 
+             * to the value of the accumulator and stores the result in the accumulator.
+             * 
+             * This instruction affects the accumulator; sets the carry flag when the sum of
+             * a binary add exceeds 255 or when the sum of a decimal add exceeds 99, 
+             * otherwise carry is reset. The overflow flag is set when the sign or bit 7 
+             * is changed due to the result exceeding +127 or -128, otherwise overflow is reset. 
+             * The negative flag is set if the accumulator result contains bit 7 on, otherwise 
+             * the negative flag is reset. The zero flag is set if the accumulator result is 0, 
+             * otherwise the zero flag is reset.
+             */
+            case 0x69: // ADC - Add Memory to Accumulator with Carry, immediate
+            f = () => {                    
+                console.log('ADC %');
+
+                const operand = this.memory.readByte(this.registers.pc + 1);
+                console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
+
+                this.registers.ac += operand;
+
+                if(this.registers.ac > 0xFF) {
+                    this.registers.ac -= 0xFF;
+                    this.registers.sr.c = 1;
+                } else {
+                    this.registers.sr.c = 0;
+                }
+        
+                this.updateFlags(this.registers.ac);
+
+                this.registers.pc += 2;
+            }
+            return [2, f]; // [ticks, func]
+
+
+            /**
+             * When instruction LDA is executed by the microprocessor, data is transferred from 
+             * memory to the accumulator and stored in the accumulator.
+             * 
+             * LDA affects the contents of the accumulator, does not affect the carry or 
+             * overflow flags; sets the zero flag if the accumulator is zero as a result of 
+             * the LDA, otherwise resets the zero flag; sets the negative flag if bit 7 of 
+             * the accumulator is a 1, other­wise resets the negative flag.
+             */
             case 0xA2: // LDA immediate
                 f = () => {                    
                     console.log('LDA %');
@@ -103,6 +147,12 @@ export class CPU extends EventTarget {
                 }
                 return [2, f]; // [ticks, func]
             
+            /**
+             * This instruction establishes a new valne for the program counter.
+             * 
+             * It affects only the program counter in the microprocessor and affects 
+             * no flags in the status register.
+             */
             case 0x4C: // JMP
                 f = () => {
                     const low = this.memory.readByte(this.registers.pc + 1);
@@ -127,14 +177,14 @@ export class CPU extends EventTarget {
      * Updates the 6502 SR register flags 
      * 
      */
-    updateFlags(operand) {
-        if (operand == 0) { // Zero flag (Z)
+    updateFlags(result) {
+        if (result == 0) { // Zero flag (Z)
             this.registers.sr.z = 1;
         } else {
             this.registers.sr.z = 0;
         }
 
-        if (!!(operand & (1 << 7))) { // Negative flag (N). Bit 7 of operand is 1
+        if (!!(result & (1 << 7))) { // Negative flag (N). Bit 7 of operand is 1
             this.registers.sr.n = 1;
         } else {
             this.registers.sr.n = 0;
