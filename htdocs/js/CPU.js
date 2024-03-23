@@ -2,14 +2,15 @@ import { Memory } from './Memory.js';
 import { CPUDisplay } from "./CPUDisplay.js";
 
 export class CPU extends EventTarget {
-    static TICKS_PER_CLOCK = 1;
+    static MILLISECONDS_PER_CLOCK_TICK = 1;
 
     static dec2hexByte(dec) {
         return dec.toString(16).padStart(2, '0').toUpperCase();
     }
 
     constructor(options) {
-        super();
+        super(); // Required to implement EventTarget
+
         this.initRegisters();
         this.initMemory();
         this.initZeroTimeoutQueue();
@@ -25,7 +26,6 @@ export class CPU extends EventTarget {
             this.display.cpu = this;
 
             options.displayContainer.append(this.display);
-            // this.addEventListener('update', () => this.updateDisplay());
         }
 
         this.addEventListener('tick', () => {
@@ -34,12 +34,16 @@ export class CPU extends EventTarget {
         });
 
         this.addEventListener('fetchAndExecute', () => {
-            const ticksRequired = this.fetch();
-            console.log('ticksRequired: ' + ticksRequired);
+            let ticksRequired, func;
+            // We need to know how many ticks does the instruction requires 
+            [ticksRequired, func] = this.fetch();
+            // console.log('ticksRequired: ' + ticksRequired);
+            // Wait until that many ticks are available, and execute the instruction
             this.waitAndDo(ticksRequired, () => {
-                this.fetchAndExecute();
+                func();
                 this.updateDisplay();
             }).then(() => {
+                // Once the instruction has completed, schedule the next fetch and execute
                 this.dispatchEvent(new CustomEvent('fetchAndExecute'));
             });    
         })        
@@ -74,46 +78,34 @@ export class CPU extends EventTarget {
         this.dispatchEvent(new CustomEvent('fetchAndExecute'));
     }
 
-    fetchAndExecute() {
-        const opcode = this.memory.readByte(this.registers.pc);
-
-        console.log(`Got opcode  '${CPU.dec2hexByte(opcode)}' from PC ${this.registers.pc}`);
-        this.registers.pc++;
-        this.execute(opcode);
-    }
-
-
+    /**
+     * Fetches an instruction, and the number of clock cycles required to execute it
+     * 
+     * @returns [Number clock cycles required to execute instructions, instruction closure]
+     */
     fetch() {
         const opcode = this.memory.readByte(this.registers.pc);
+        let f;
 
         switch (opcode) {
             case 0xA2: // LDA immediate
-                return 2; // ticks
-            
-            case 0x4C: // JMP
-                return 3; // ticks
-            
-            default: 
-                console.log(`Unknown opcode '${opcode}' at PC: ${this.registers.pc} `);
-        }
-    }
-
-    execute(opcode) {
-        switch (opcode) {
-            case 0xA2: // LDA immediate
+                f = () => {                    
                     console.log('LDA %');
-                    const operand = this.memory.readByte(this.registers.pc++);
+
+                    const operand = this.memory.readByte(this.registers.pc + 1);
                     console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                     this.registers.ac = operand;
                     this.updateFlags(operand);
-                break;
 
+                    this.registers.pc += 2;
+                }
+                return [2, f]; // [ticks, func]
+            
             case 0x4C: // JMP
-                    console.log('JMP');
-
-                    const low = this.memory.readByte(this.registers.pc++);
-                    const high = this.memory.readByte(this.registers.pc);
+                f = () => {
+                    const low = this.memory.readByte(this.registers.pc + 1);
+                    const high = this.memory.readByte(this.registers.pc + 2);
 
                     const jumpAddress = (high << 8) + low;
 
@@ -121,14 +113,19 @@ export class CPU extends EventTarget {
 
                     // Do the jump
                     this.registers.pc = jumpAddress;
-                break;
-
-
-            default:
-                alert(`Unknown opcode '${CPU.dec2hexByte(opcode)}', PC: ${this.registers.pc}`);
+                }
+                return [3, f]; // [ticks, func]
+            
+            default: 
+                console.log(`Unknown opcode '${CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
         }
     }
 
+    /**
+     * 
+     * Updates the 6502 SR register flags 
+     * 
+     */
     updateFlags(operand) {
         if (operand == 0) { // Zero flag (Z)
             this.registers.sr.z = 1;
@@ -158,7 +155,7 @@ export class CPU extends EventTarget {
         this.clockTimeout = setInterval(() => {
             this.isRunning = true;
             this.dispatchEvent(new CustomEvent('tick'));
-        }, CPU.TICKS_PER_CLOCK);
+        }, CPU.MILLISECONDS_PER_CLOCK_TICK);
     }
 
     stop() {
@@ -167,10 +164,25 @@ export class CPU extends EventTarget {
         clearTimeout(this.clockTimeout);
     }
 
+    /**
+     * Wait until {ticks} ticks are available, then execute {instruction} 
+     *
+     * @param {*} ticks 
+     * @param {*} instruction 
+     * @returns Promise
+     */
     waitAndDo(ticks, instruction) {
         return this.waitForTicks(ticks).then(instruction);
     }
 
+    /**
+     * 
+     * Waits until the number of ticks are available
+     * 
+     * @param {Number} ticksRequired 
+     * @param {Function} resolve 
+     * @returns Promise
+     */
     waitForTicks(ticksRequired, resolve) {
         return new Promise((resolve, reject) => {
             const checkForTick = () => {
@@ -195,6 +207,9 @@ export class CPU extends EventTarget {
         });
     }
 
+    /**
+     * the ZeroTimeoutQueue is much faster than setTimeout(fn, 0)
+     */
     initZeroTimeoutQueue() {
         this.timeoutsQueue = [];
 
@@ -209,12 +224,20 @@ export class CPU extends EventTarget {
         }, true);
     }
 
+    /**
+     * Add a closure to the queue to be run as soon as possible
+     * 
+     * @param {function} fn 
+     */
     newZeroTimeout(fn) {
         // console.log('pushed fn to timeoutsQueue:', fn);
         this.timeoutsQueue.push(fn);
         window.postMessage('zeroTimeoutPushed', "*");
     }
 
+    /**
+     * Update the display of the CPU (if there is one attached)
+     */
     updateDisplay() {
         if (this.display) {
             // Make a new copy of the registers to pass to display

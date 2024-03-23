@@ -875,10 +875,10 @@
         this.tickCount++;
       });
       this.addEventListener("fetchAndExecute", () => {
-        const ticksRequired = this.fetch();
-        console.log("ticksRequired: " + ticksRequired);
+        let ticksRequired, func;
+        [ticksRequired, func] = this.fetch();
         this.waitAndDo(ticksRequired, () => {
-          this.fetchAndExecute();
+          func();
           this.updateDisplay();
         }).then(() => {
           this.dispatchEvent(new CustomEvent("fetchAndExecute"));
@@ -910,44 +910,43 @@
     boot() {
       this.dispatchEvent(new CustomEvent("fetchAndExecute"));
     }
-    fetchAndExecute() {
-      const opcode = this.memory.readByte(this.registers.pc);
-      console.log(`Got opcode  '${_CPU.dec2hexByte(opcode)}' from PC ${this.registers.pc}`);
-      this.registers.pc++;
-      this.execute(opcode);
-    }
+    /**
+     * Fetches an instruction, and the number of clock cycles required to execute it
+     * 
+     * @returns [Number clock cycles required to execute instructions, instruction closure]
+     */
     fetch() {
       const opcode = this.memory.readByte(this.registers.pc);
+      let f3;
       switch (opcode) {
         case 162:
-          return 2;
+          f3 = () => {
+            console.log("LDA %");
+            const operand = this.memory.readByte(this.registers.pc + 1);
+            console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
+            this.registers.ac = operand;
+            this.updateFlags(operand);
+            this.registers.pc += 2;
+          };
+          return [2, f3];
         case 76:
-          return 3;
+          f3 = () => {
+            const low = this.memory.readByte(this.registers.pc + 1);
+            const high = this.memory.readByte(this.registers.pc + 2);
+            const jumpAddress = (high << 8) + low;
+            console.log(`jump to address: ${_CPU.dec2hexByte(jumpAddress)}`);
+            this.registers.pc = jumpAddress;
+          };
+          return [3, f3];
         default:
-          console.log(`Unknown opcode '${opcode}' at PC: ${this.registers.pc} `);
+          console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
       }
     }
-    execute(opcode) {
-      switch (opcode) {
-        case 162:
-          console.log("LDA %");
-          const operand = this.memory.readByte(this.registers.pc++);
-          console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
-          this.registers.ac = operand;
-          this.updateFlags(operand);
-          break;
-        case 76:
-          console.log("JMP");
-          const low = this.memory.readByte(this.registers.pc++);
-          const high = this.memory.readByte(this.registers.pc);
-          const jumpAddress = (high << 8) + low;
-          console.log(`jump to address: ${_CPU.dec2hexByte(jumpAddress)}`);
-          this.registers.pc = jumpAddress;
-          break;
-        default:
-          alert(`Unknown opcode '${_CPU.dec2hexByte(opcode)}', PC: ${this.registers.pc}`);
-      }
-    }
+    /**
+     * 
+     * Updates the 6502 SR register flags 
+     * 
+     */
     updateFlags(operand) {
       if (operand == 0) {
         this.registers.sr.z = 1;
@@ -973,16 +972,31 @@
       this.clockTimeout = setInterval(() => {
         this.isRunning = true;
         this.dispatchEvent(new CustomEvent("tick"));
-      }, _CPU.TICKS_PER_CLOCK);
+      }, _CPU.MILLISECONDS_PER_CLOCK_TICK);
     }
     stop() {
       console.log("Stop");
       this.isRunning = false;
       clearTimeout(this.clockTimeout);
     }
+    /**
+     * Wait until {ticks} ticks are available, then execute {instruction} 
+     *
+     * @param {*} ticks 
+     * @param {*} instruction 
+     * @returns Promise
+     */
     waitAndDo(ticks, instruction) {
       return this.waitForTicks(ticks).then(instruction);
     }
+    /**
+     * 
+     * Waits until the number of ticks are available
+     * 
+     * @param {Number} ticksRequired 
+     * @param {Function} resolve 
+     * @returns Promise
+     */
     waitForTicks(ticksRequired, resolve) {
       return new Promise((resolve2, reject) => {
         const checkForTick = () => {
@@ -1003,6 +1017,9 @@
         this.newZeroTimeout(checkForTick);
       });
     }
+    /**
+     * the ZeroTimeoutQueue is much faster than setTimeout(fn, 0)
+     */
     initZeroTimeoutQueue() {
       this.timeoutsQueue = [];
       window.addEventListener("message", (event) => {
@@ -1015,10 +1032,18 @@
         }
       }, true);
     }
+    /**
+     * Add a closure to the queue to be run as soon as possible
+     * 
+     * @param {function} fn 
+     */
     newZeroTimeout(fn) {
       this.timeoutsQueue.push(fn);
       window.postMessage("zeroTimeoutPushed", "*");
     }
+    /**
+     * Update the display of the CPU (if there is one attached)
+     */
     updateDisplay() {
       if (this.display) {
         const registers = __spreadValues({}, this.registers);
@@ -1030,7 +1055,7 @@
       }
     }
   };
-  __publicField(_CPU, "TICKS_PER_CLOCK", 1);
+  __publicField(_CPU, "MILLISECONDS_PER_CLOCK_TICK", 1);
   var CPU = _CPU;
 
   // htdocs/js/scripts.js
