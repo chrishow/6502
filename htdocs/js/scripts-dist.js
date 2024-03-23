@@ -798,7 +798,7 @@
             </td>
         </tr>
         <tr>
-            <th>C/S</th>
+            <th>Ticks</th>
             <td>${this.ticks}</td>
         </tr>
         
