@@ -44,6 +44,7 @@
   var _Memory = class _Memory {
     constructor() {
       this.initMemory();
+      return this;
     }
     initMemory() {
       this._mem = new Array(_Memory.MEM_SIZE).fill(0);
@@ -800,12 +801,24 @@
         <tr>
             <th>Ticks</th>
             <td>${this.ticks}</td>
-        </tr>
-        
+        </tr>        
     </table>
-    <button @click="${this.step}">Step</button>
-    <button @click="${this.start}">Start</button>
-    <button @click="${this.stop}">Stop</button>
+
+    <table class=memory>
+        <tr><td class='${this.registers.pc == 0 ? "active" : ""}'>0x00</td><td>${_CPUDisplay.formatByte(this.memory._mem[0])}</td></tr>
+        <tr><td class='${this.registers.pc == 1 ? "active" : ""}'>0x01</td><td>${_CPUDisplay.formatByte(this.memory._mem[1])}</td></tr>
+        <tr><td class='${this.registers.pc == 2 ? "active" : ""}'>0x02</td><td>${_CPUDisplay.formatByte(this.memory._mem[2])}</td></tr>
+        <tr><td class='${this.registers.pc == 3 ? "active" : ""}'>0x03</td><td>${_CPUDisplay.formatByte(this.memory._mem[3])}</td></tr>
+        <tr><td class='${this.registers.pc == 4 ? "active" : ""}'>0x04</td><td>${_CPUDisplay.formatByte(this.memory._mem[4])}</td></tr>
+        <tr><td class='${this.registers.pc == 5 ? "active" : ""}'>0x05</td><td>${_CPUDisplay.formatByte(this.memory._mem[5])}</td></tr>
+        <tr><td class='${this.registers.pc == 6 ? "active" : ""}'>0x06</td><td>${_CPUDisplay.formatByte(this.memory._mem[6])}</td></tr>        
+    </table>
+
+    <div class=buttons>
+        <button @click="${this.step}">Step</button>
+        <button @click="${this.start}">Start</button>
+        <button @click="${this.stop}">Stop</button>
+    </div>
 `;
     }
   };
@@ -827,10 +840,21 @@
             padding: 0.5em;
         }
 
+        .buttons {
+            clear: both;
+        }
+
 		table {
 			background-color: #999;
             margin-bottom: 0.5em;
+            margin-right: 2em;
+            float: left;
 		}
+
+        .active  {
+            background-color: #df0808;
+            color: white;
+        }
 
 		th {
 			text-align: right;
@@ -868,6 +892,7 @@
       if (options.displayContainer) {
         this.display = document.createElement("cpu-display");
         this.display.cpu = this;
+        this.display.memory = this.memory;
         options.displayContainer.append(this.display);
       }
       this.addEventListener("tick", () => {
@@ -1052,6 +1077,7 @@
         }
         this.display.registers = registers;
         this.display.ticks = this.tickCount;
+        this.display.memory = this.memory;
       }
     }
   };

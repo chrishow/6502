@@ -24,7 +24,8 @@ export class CPU extends EventTarget {
         if (options.displayContainer) {
             this.display = document.createElement('cpu-display');
             this.display.cpu = this;
-
+            this.display.memory = this.memory;
+            
             options.displayContainer.append(this.display);
         }
 
@@ -249,6 +250,7 @@ export class CPU extends EventTarget {
 
             this.display.registers = registers;
             this.display.ticks = this.tickCount;
+            this.display.memory = this.memory;
         }
     }
 }

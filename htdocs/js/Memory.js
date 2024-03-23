@@ -5,6 +5,8 @@ export class Memory {
 
     constructor() {
         this.initMemory();
+
+        return this;
     }
 
 

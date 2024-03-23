@@ -14,7 +14,7 @@ export class CPUDisplay extends LitElement {
 		registers: { 
             type: Object, 
             reflect: true, 
-            attribute: true,            
+            attribute: true,
         }
 	  }
 	;}
@@ -37,10 +37,21 @@ export class CPUDisplay extends LitElement {
             padding: 0.5em;
         }
 
+        .buttons {
+            clear: both;
+        }
+
 		table {
 			background-color: #999;
             margin-bottom: 0.5em;
+            margin-right: 2em;
+            float: left;
 		}
+
+        .active  {
+            background-color: #df0808;
+            color: white;
+        }
 
 		th {
 			text-align: right;
@@ -147,12 +158,24 @@ export class CPUDisplay extends LitElement {
         <tr>
             <th>Ticks</th>
             <td>${this.ticks}</td>
-        </tr>
-        
+        </tr>        
     </table>
-    <button @click="${this.step}">Step</button>
-    <button @click="${this.start}">Start</button>
-    <button @click="${this.stop}">Stop</button>
+
+    <table class=memory>
+        <tr><td class='${this.registers.pc == 0 ? 'active' : ''}'>0x00</td><td>${CPUDisplay.formatByte(this.memory._mem[0])}</td></tr>
+        <tr><td class='${this.registers.pc == 1 ? 'active' : ''}'>0x01</td><td>${CPUDisplay.formatByte(this.memory._mem[1])}</td></tr>
+        <tr><td class='${this.registers.pc == 2 ? 'active' : ''}'>0x02</td><td>${CPUDisplay.formatByte(this.memory._mem[2])}</td></tr>
+        <tr><td class='${this.registers.pc == 3 ? 'active' : ''}'>0x03</td><td>${CPUDisplay.formatByte(this.memory._mem[3])}</td></tr>
+        <tr><td class='${this.registers.pc == 4 ? 'active' : ''}'>0x04</td><td>${CPUDisplay.formatByte(this.memory._mem[4])}</td></tr>
+        <tr><td class='${this.registers.pc == 5 ? 'active' : ''}'>0x05</td><td>${CPUDisplay.formatByte(this.memory._mem[5])}</td></tr>
+        <tr><td class='${this.registers.pc == 6 ? 'active' : ''}'>0x06</td><td>${CPUDisplay.formatByte(this.memory._mem[6])}</td></tr>        
+    </table>
+
+    <div class=buttons>
+        <button @click="${this.step}">Step</button>
+        <button @click="${this.start}">Start</button>
+        <button @click="${this.stop}">Stop</button>
+    </div>
 `;
 	}
 }
