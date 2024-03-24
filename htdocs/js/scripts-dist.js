@@ -55,6 +55,12 @@
     writeByte(location, value) {
       this._mem[location] = value;
     }
+    hexLoad(start, hexString) {
+      const bytes = hexString.split(" ");
+      bytes.forEach((byte) => {
+        this.writeByte(start++, parseInt(byte, 16));
+      });
+    }
   };
   // static MEM_SIZE = 16 * 1024;
   __publicField(_Memory, "MEM_SIZE", 128);
@@ -945,6 +951,11 @@
       const opcode = this.memory.readByte(this.registers.pc);
       let f3;
       switch (opcode) {
+        case 0:
+          f3 = () => {
+            this.stop();
+          };
+          return [1, f3];
         case 105:
           f3 = () => {
             console.log("ADC %");
@@ -1118,11 +1129,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.writeByte(PC++, 105);
-    cpu.memory.writeByte(PC++, 1);
-    cpu.memory.writeByte(PC++, 76);
-    cpu.memory.writeByte(PC++, 0);
-    cpu.memory.writeByte(PC++, 0);
+    cpu.memory.hexLoad(0, "69 01 4C 00 00");
     cpu.boot();
   });
 })();

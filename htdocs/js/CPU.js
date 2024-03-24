@@ -91,6 +91,16 @@ export class CPU extends EventTarget {
 
         switch (opcode) {
             /**
+             * This isn't actually what a 6502 does for BRK, but will do for now. 
+             * Just serves as a way to stop the program
+             */
+            case 0x00: // BRK
+                f = () => {
+                    this.stop();
+                };
+                return [1, f];
+
+            /**
              * This instruction adds the value of memory and carry from the previous operation 
              * to the value of the accumulator and stores the result in the accumulator.
              * 
@@ -120,7 +130,7 @@ export class CPU extends EventTarget {
         
                 this.updateFlags(this.registers.ac);
 
-            }
+            };
             return [2, f]; // [ticks, func]
 
 
@@ -143,7 +153,7 @@ export class CPU extends EventTarget {
                     this.registers.ac = operand;
                     this.updateFlags(operand);
 
-                }
+                };
                 return [2, f]; // [ticks, func]
             
             /**
@@ -160,7 +170,7 @@ export class CPU extends EventTarget {
 
                     // Do the jump
                     this.registers.pc = jumpAddress;
-                }
+                };
                 return [3, f]; // [ticks, func]
             
             default: 

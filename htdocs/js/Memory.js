@@ -21,5 +21,13 @@ export class Memory {
     writeByte(location, value) {
         this._mem[location] = value;
     }
+
+    hexLoad(start, hexString) {
+        const bytes = hexString.split(' ');
+        // console.log(bytes);
+        bytes.forEach(byte => {
+            this.writeByte(start++, parseInt(byte, 16));
+        });
+    }
     
 }
