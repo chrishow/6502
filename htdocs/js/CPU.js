@@ -41,6 +41,7 @@ export class CPU extends EventTarget {
             // console.log('ticksRequired: ' + ticksRequired);
             // Wait until that many ticks are available, and execute the instruction
             this.waitAndDo(ticksRequired, () => {
+                this.registers.pc++;
                 func();
                 this.updateDisplay();
             }).then(() => {
@@ -105,7 +106,7 @@ export class CPU extends EventTarget {
             f = () => {                    
                 console.log('ADC %');
 
-                const operand = this.memory.readByte(this.registers.pc + 1);
+                const operand = this.popByte();
                 console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                 this.registers.ac += operand;
@@ -119,7 +120,6 @@ export class CPU extends EventTarget {
         
                 this.updateFlags(this.registers.ac);
 
-                this.registers.pc += 2;
             }
             return [2, f]; // [ticks, func]
 
@@ -137,13 +137,12 @@ export class CPU extends EventTarget {
                 f = () => {                    
                     console.log('LDA %');
 
-                    const operand = this.memory.readByte(this.registers.pc + 1);
+                    operand = this.popByte();
                     console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                     this.registers.ac = operand;
                     this.updateFlags(operand);
 
-                    this.registers.pc += 2;
                 }
                 return [2, f]; // [ticks, func]
             
@@ -155,10 +154,7 @@ export class CPU extends EventTarget {
              */
             case 0x4C: // JMP
                 f = () => {
-                    const low = this.memory.readByte(this.registers.pc + 1);
-                    const high = this.memory.readByte(this.registers.pc + 2);
-
-                    const jumpAddress = (high << 8) + low;
+                    const jumpAddress = this.popWord();
 
                     console.log(`jump to address: ${CPU.dec2hexByte(jumpAddress)}`)
 
@@ -170,6 +166,23 @@ export class CPU extends EventTarget {
             default: 
                 console.log(`Unknown opcode '${CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
         }
+    }
+
+    /**
+     * Reads a byte and increments PC
+     */
+    popByte() {
+        return this.memory.readByte(this.registers.pc++);
+    }
+
+    /**
+     * Reads a word in little-endian format
+     */
+    popWord() {
+        const lowByte = this.popByte();
+        const highByte = this.popByte();
+         
+        return lowByte + (highByte << 8);
     }
 
     /**

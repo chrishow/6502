@@ -903,6 +903,7 @@
         let ticksRequired, func;
         [ticksRequired, func] = this.fetch();
         this.waitAndDo(ticksRequired, () => {
+          this.registers.pc++;
           func();
           this.updateDisplay();
         }).then(() => {
@@ -947,9 +948,9 @@
         case 105:
           f3 = () => {
             console.log("ADC %");
-            const operand = this.memory.readByte(this.registers.pc + 1);
-            console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
-            this.registers.ac += operand;
+            const operand2 = this.popByte();
+            console.log(`Operand: ${_CPU.dec2hexByte(operand2)}`);
+            this.registers.ac += operand2;
             if (this.registers.ac > 255) {
               this.registers.ac -= 255;
               this.registers.sr.c = 1;
@@ -957,24 +958,20 @@
               this.registers.sr.c = 0;
             }
             this.updateFlags(this.registers.ac);
-            this.registers.pc += 2;
           };
           return [2, f3];
         case 162:
           f3 = () => {
             console.log("LDA %");
-            const operand = this.memory.readByte(this.registers.pc + 1);
+            operand = this.popByte();
             console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
             this.registers.ac = operand;
             this.updateFlags(operand);
-            this.registers.pc += 2;
           };
           return [2, f3];
         case 76:
           f3 = () => {
-            const low = this.memory.readByte(this.registers.pc + 1);
-            const high = this.memory.readByte(this.registers.pc + 2);
-            const jumpAddress = (high << 8) + low;
+            const jumpAddress = this.popWord();
             console.log(`jump to address: ${_CPU.dec2hexByte(jumpAddress)}`);
             this.registers.pc = jumpAddress;
           };
@@ -982,6 +979,20 @@
         default:
           console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
       }
+    }
+    /**
+     * Reads a byte and increments PC
+     */
+    popByte() {
+      return this.memory.readByte(this.registers.pc++);
+    }
+    /**
+     * Reads a word in little-endian format
+     */
+    popWord() {
+      const lowByte = this.popByte();
+      const highByte = this.popByte();
+      return lowByte + (highByte << 8);
     }
     /**
      * 
