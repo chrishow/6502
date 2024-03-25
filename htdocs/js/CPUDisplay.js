@@ -156,8 +156,12 @@ export class CPUDisplay extends LitElement {
             </td>
         </tr>
         <tr>
-            <th>Ticks</th>
+            <th>Cycles</th>
             <td>${this.ticks}</td>
+        </tr>        
+        <tr>
+            <th>c/s</th>
+            <td>${this.cps}</td>
         </tr>        
     </table>
 

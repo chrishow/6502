@@ -805,8 +805,12 @@
             </td>
         </tr>
         <tr>
-            <th>Ticks</th>
+            <th>Cycles</th>
             <td>${this.ticks}</td>
+        </tr>        
+        <tr>
+            <th>c/s</th>
+            <td>${this.cps}</td>
         </tr>        
     </table>
 
@@ -909,6 +913,7 @@
       if (this.isRunning) {
         this.newZeroTimeout(this.doTick.bind(this));
       }
+      this.updateDisplay();
     }
     initRegisters() {
       this.registers = {
@@ -942,7 +947,6 @@
         this.fetchAndExecute();
         this.registers.pc++;
       }
-      this.updateDisplay();
     }
     boot() {
       this.updateDisplay();
@@ -954,14 +958,11 @@
       const opcode = this.memory.readByte(this.registers.pc);
       switch (opcode) {
         case 0:
-          console.log("BRK %");
           this.stop();
           break;
         case 105:
-          console.log("ADC %");
           this.subCycleInstructions.push(() => {
             const operand2 = this.popByte();
-            console.log(`Operand: ${_CPU.dec2hexByte(operand2)}`);
             this.registers.ac += operand2;
             if (this.registers.ac > 255) {
               this.registers.ac -= 255;
@@ -973,10 +974,8 @@
           });
           break;
         case 162:
-          console.log("LDA %");
           this.subCycleInstructions.push(() => {
             operand = this.popByte();
-            console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
             this.registers.ac = operand;
             this.updateFlags(operand);
           });
@@ -984,7 +983,6 @@
         case 76:
           this.subCycleInstructions.push(() => {
             const jumpAddress = this.popWord();
-            console.log(`jump to address: ${_CPU.dec2hexByte(jumpAddress)}`);
             this.registers.pc = jumpAddress;
           });
           break;
@@ -1026,9 +1024,13 @@
     step() {
       console.log("Step");
       this.doTick();
+      if (this.display) {
+        this.display.cps = "";
+      }
     }
     start() {
       console.log("Start");
+      this.startProfiling();
       if (this.isRunning) {
         return;
       }
@@ -1037,6 +1039,7 @@
     }
     stop() {
       console.log("Stop");
+      this.stopProfiling();
       this.isRunning = false;
     }
     /**
@@ -1076,6 +1079,23 @@
         this.display.ticks = this.tickCount;
         this.display.memory = this.memory;
       }
+    }
+    startProfiling() {
+      this.startTime = performance.now();
+      this.startTicks = this.tickCount;
+      this.profileUpdateIntervalTimer = setInterval(() => {
+        this.updateProfile();
+      }, 250);
+    }
+    updateProfile() {
+      const timeTaken = (performance.now() - this.startTime) / 1e3;
+      const ticksProcessed = this.tickCount - this.startTicks;
+      if (this.display) {
+        this.display.cps = Math.round(ticksProcessed / timeTaken);
+      }
+    }
+    stopProfiling() {
+      clearInterval(this.profileUpdateIntervalTimer);
     }
   };
   __publicField(_CPU, "MILLISECONDS_PER_CLOCK_TICK", 1);

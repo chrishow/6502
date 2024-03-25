@@ -35,10 +35,13 @@ export class CPU extends EventTarget {
     doTick() {
         this.tickCount++;
         this.processTick();
+
         if(this.isRunning) {
             // setTimeout(this.doTick.bind(this), 0);
             this.newZeroTimeout(this.doTick.bind(this));
         }
+
+        this.updateDisplay();
     }
 
     initRegisters() {
@@ -76,7 +79,6 @@ export class CPU extends EventTarget {
             this.fetchAndExecute();
             this.registers.pc++;
         }
-        this.updateDisplay();
     }
 
     boot() {
@@ -95,7 +97,7 @@ export class CPU extends EventTarget {
              * Just serves as a way to stop the program
              */
             case 0x00: // BRK
-                console.log('BRK %');
+                // console.log('BRK %');
 
                 // this.subCycleInstructions.push(() => {
                 this.stop();
@@ -115,10 +117,10 @@ export class CPU extends EventTarget {
              * otherwise the zero flag is reset.
              */
             case 0x69: // ADC - Add Memory to Accumulator with Carry, immediate
-                console.log('ADC %');
+                // console.log('ADC %');
                 this.subCycleInstructions.push(() => {
                     const operand = this.popByte();
-                    console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
+                    // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                     this.registers.ac += operand;
 
@@ -145,11 +147,11 @@ export class CPU extends EventTarget {
              * the accumulator is a 1, other­wise resets the negative flag.
              */
             case 0xA2: // LDA immediate
-                console.log('LDA %');
+                // console.log('LDA %');
                 this.subCycleInstructions.push(() => {
 
                     operand = this.popByte();
-                    console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
+                    // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                     this.registers.ac = operand;
                     this.updateFlags(operand);
@@ -164,11 +166,12 @@ export class CPU extends EventTarget {
              * no flags in the status register.
              */
             case 0x4C: // JMP
+                // console.log('JMP');
                 this.subCycleInstructions.push(() => {
 
                     const jumpAddress = this.popWord();
 
-                    console.log(`jump to address: ${CPU.dec2hexByte(jumpAddress)}`)
+                    // console.log(`jump to address: ${CPU.dec2hexByte(jumpAddress)}`)
 
                     // Do the jump
                     this.registers.pc = jumpAddress;
@@ -219,10 +222,17 @@ export class CPU extends EventTarget {
     step() {
         console.log('Step');
         this.doTick();
+        
+        if(this.display) {
+            this.display.cps = '';
+        }
     }
 
     start() {
         console.log('Start');
+
+        this.startProfiling();
+
         if(this.isRunning) {
             // Already running
             return;
@@ -234,6 +244,7 @@ export class CPU extends EventTarget {
 
     stop() {
         console.log('Stop');
+        this.stopProfiling();
         this.isRunning = false;
     }
 
@@ -282,5 +293,27 @@ export class CPU extends EventTarget {
             this.display.ticks = this.tickCount;
             this.display.memory = this.memory;
         }
+    }
+
+    startProfiling() {
+        this.startTime = performance.now();
+        this.startTicks = this.tickCount;
+
+        this.profileUpdateIntervalTimer = setInterval(() => {
+            this.updateProfile();
+        }, 250);
+
+    }
+
+    updateProfile() {
+        const timeTaken = (performance.now() - this.startTime) / 1000;
+        const ticksProcessed = this.tickCount - this.startTicks;
+        if(this.display) {
+            this.display.cps = Math.round(ticksProcessed / timeTaken);
+        }
+    }
+    
+    stopProfiling() {
+        clearInterval(this.profileUpdateIntervalTimer);
     }
 }
