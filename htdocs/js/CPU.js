@@ -15,9 +15,9 @@ export class CPU extends EventTarget {
         this.initMemory();
         this.initZeroTimeoutQueue();
 
-        this.ticksAvailable = 0;
         this.isRunning = false;
         this.tickCount = 0;
+        this.subCycleInstructions = [];
 
         this.display = undefined;
 
@@ -29,28 +29,16 @@ export class CPU extends EventTarget {
             options.displayContainer.append(this.display);
         }
 
-        this.addEventListener('tick', () => {
-            this.ticksAvailable++;
-            this.tickCount++;
-        });
-
-        this.addEventListener('fetchAndExecute', () => {
-            let ticksRequired, func;
-            // We need to know how many ticks does the instruction requires 
-            [ticksRequired, func] = this.fetch();
-            // console.log('ticksRequired: ' + ticksRequired);
-            // Wait until that many ticks are available, and execute the instruction
-            this.waitAndDo(ticksRequired, () => {
-                this.registers.pc++;
-                func();
-                this.updateDisplay();
-            }).then(() => {
-                // Once the instruction has completed, schedule the next fetch and execute
-                this.dispatchEvent(new CustomEvent('fetchAndExecute'));
-            });    
-        })        
-
         return this;
+    }
+
+    doTick() {
+        this.tickCount++;
+        this.processTick();
+        if(this.isRunning) {
+            // setTimeout(this.doTick.bind(this), 0);
+            this.newZeroTimeout(this.doTick.bind(this));
+        }
     }
 
     initRegisters() {
@@ -76,18 +64,30 @@ export class CPU extends EventTarget {
         this.memory = new Memory;
     }
 
+    /**
+     * Do something in response to a clock tick
+     */
+    processTick() {
+        if(this.subCycleInstructions.length) {
+            // Do the next sub-instruction
+            const subCycleInstruction = this.subCycleInstructions.shift();
+            subCycleInstruction();
+        } else {
+            this.fetchAndExecute();
+            this.registers.pc++;
+        }
+        this.updateDisplay();
+    }
+
     boot() {
-        this.dispatchEvent(new CustomEvent('fetchAndExecute'));
+        this.updateDisplay();
     }
 
     /**
-     * Fetches an instruction, and the number of clock cycles required to execute it
-     * 
-     * @returns [Number clock cycles required to execute instructions, instruction closure]
+     * Fetches an instruction and executes it
      */
-    fetch() {
+    fetchAndExecute() {
         const opcode = this.memory.readByte(this.registers.pc);
-        let f;
 
         switch (opcode) {
             /**
@@ -95,10 +95,12 @@ export class CPU extends EventTarget {
              * Just serves as a way to stop the program
              */
             case 0x00: // BRK
-                f = () => {
-                    this.stop();
-                };
-                return [1, f];
+                console.log('BRK %');
+
+                // this.subCycleInstructions.push(() => {
+                this.stop();
+                // });
+                break;
 
             /**
              * This instruction adds the value of memory and carry from the previous operation 
@@ -113,25 +115,24 @@ export class CPU extends EventTarget {
              * otherwise the zero flag is reset.
              */
             case 0x69: // ADC - Add Memory to Accumulator with Carry, immediate
-            f = () => {                    
                 console.log('ADC %');
+                this.subCycleInstructions.push(() => {
+                    const operand = this.popByte();
+                    console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
-                const operand = this.popByte();
-                console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
+                    this.registers.ac += operand;
 
-                this.registers.ac += operand;
+                    if(this.registers.ac > 0xFF) {
+                        this.registers.ac -= 0xFF;
+                        this.registers.sr.c = 1;
+                    } else {
+                        this.registers.sr.c = 0;
+                    }
+            
+                    this.updateFlags(this.registers.ac);
+                });
 
-                if(this.registers.ac > 0xFF) {
-                    this.registers.ac -= 0xFF;
-                    this.registers.sr.c = 1;
-                } else {
-                    this.registers.sr.c = 0;
-                }
-        
-                this.updateFlags(this.registers.ac);
-
-            };
-            return [2, f]; // [ticks, func]
+                break;
 
 
             /**
@@ -144,17 +145,17 @@ export class CPU extends EventTarget {
              * the accumulator is a 1, other­wise resets the negative flag.
              */
             case 0xA2: // LDA immediate
-                f = () => {                    
-                    console.log('LDA %');
+                console.log('LDA %');
+                this.subCycleInstructions.push(() => {
 
                     operand = this.popByte();
                     console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                     this.registers.ac = operand;
                     this.updateFlags(operand);
+                });
 
-                };
-                return [2, f]; // [ticks, func]
+                break;
             
             /**
              * This instruction establishes a new valne for the program counter.
@@ -163,15 +164,16 @@ export class CPU extends EventTarget {
              * no flags in the status register.
              */
             case 0x4C: // JMP
-                f = () => {
+                this.subCycleInstructions.push(() => {
+
                     const jumpAddress = this.popWord();
 
                     console.log(`jump to address: ${CPU.dec2hexByte(jumpAddress)}`)
 
                     // Do the jump
                     this.registers.pc = jumpAddress;
-                };
-                return [3, f]; // [ticks, func]
+                });
+                break;
             
             default: 
                 console.log(`Unknown opcode '${CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
@@ -216,70 +218,25 @@ export class CPU extends EventTarget {
 
     step() {
         console.log('Step');
-        this.dispatchEvent(new CustomEvent('tick'));
-        this.updateDisplay(); // To show new tick count
+        this.doTick();
     }
 
     start() {
         console.log('Start');
-        if (this.clockTimeout) {
-            clearTimeout(this.clockTimeout);
+        if(this.isRunning) {
+            // Already running
+            return;
         }
 
-        this.clockTimeout = setInterval(() => {
-            this.isRunning = true;
-            this.dispatchEvent(new CustomEvent('tick'));
-        }, CPU.MILLISECONDS_PER_CLOCK_TICK);
+        this.isRunning = true;
+        this.doTick();        
     }
 
     stop() {
         console.log('Stop');
         this.isRunning = false;
-        clearTimeout(this.clockTimeout);
     }
 
-    /**
-     * Wait until {ticks} ticks are available, then execute {instruction} 
-     *
-     * @param {*} ticks 
-     * @param {*} instruction 
-     * @returns Promise
-     */
-    waitAndDo(ticks, instruction) {
-        return this.waitForTicks(ticks).then(instruction);
-    }
-
-    /**
-     * 
-     * Waits until the number of ticks are available
-     * 
-     * @param {Number} ticksRequired 
-     * @param {Function} resolve 
-     * @returns Promise
-     */
-    waitForTicks(ticksRequired, resolve) {
-        return new Promise((resolve, reject) => {
-            const checkForTick = () => {
-                if (this.ticksAvailable >= ticksRequired) {
-                    // console.log('Tick available! 😄');
-                    this.ticksAvailable -= ticksRequired;
-                    resolve();
-                } else {
-                    if(this.isRunning) {
-                        this.newZeroTimeout(checkForTick);
-                    } else {
-                        // Give the processor a break 😂
-                        setTimeout(() => {
-                            this.newZeroTimeout(checkForTick);
-                        }, 100);
-                    }
-                    return false;
-                }
-            };
-
-            this.newZeroTimeout(checkForTick);
-        });
-    }
 
     /**
      * the ZeroTimeoutQueue is much faster than setTimeout(fn, 0)

@@ -891,9 +891,9 @@
       this.initRegisters();
       this.initMemory();
       this.initZeroTimeoutQueue();
-      this.ticksAvailable = 0;
       this.isRunning = false;
       this.tickCount = 0;
+      this.subCycleInstructions = [];
       this.display = void 0;
       if (options.displayContainer) {
         this.display = document.createElement("cpu-display");
@@ -901,22 +901,14 @@
         this.display.memory = this.memory;
         options.displayContainer.append(this.display);
       }
-      this.addEventListener("tick", () => {
-        this.ticksAvailable++;
-        this.tickCount++;
-      });
-      this.addEventListener("fetchAndExecute", () => {
-        let ticksRequired, func;
-        [ticksRequired, func] = this.fetch();
-        this.waitAndDo(ticksRequired, () => {
-          this.registers.pc++;
-          func();
-          this.updateDisplay();
-        }).then(() => {
-          this.dispatchEvent(new CustomEvent("fetchAndExecute"));
-        });
-      });
       return this;
+    }
+    doTick() {
+      this.tickCount++;
+      this.processTick();
+      if (this.isRunning) {
+        this.newZeroTimeout(this.doTick.bind(this));
+      }
     }
     initRegisters() {
       this.registers = {
@@ -939,26 +931,35 @@
     initMemory() {
       this.memory = new Memory();
     }
+    /**
+     * Do something in response to a clock tick
+     */
+    processTick() {
+      if (this.subCycleInstructions.length) {
+        const subCycleInstruction = this.subCycleInstructions.shift();
+        subCycleInstruction();
+      } else {
+        this.fetchAndExecute();
+        this.registers.pc++;
+      }
+      this.updateDisplay();
+    }
     boot() {
-      this.dispatchEvent(new CustomEvent("fetchAndExecute"));
+      this.updateDisplay();
     }
     /**
-     * Fetches an instruction, and the number of clock cycles required to execute it
-     * 
-     * @returns [Number clock cycles required to execute instructions, instruction closure]
+     * Fetches an instruction and executes it
      */
-    fetch() {
+    fetchAndExecute() {
       const opcode = this.memory.readByte(this.registers.pc);
-      let f3;
       switch (opcode) {
         case 0:
-          f3 = () => {
-            this.stop();
-          };
-          return [1, f3];
+          console.log("BRK %");
+          this.stop();
+          break;
         case 105:
-          f3 = () => {
-            console.log("ADC %");
+          console.log("ADC %");
+          this.subCycleInstructions.push(() => {
             const operand2 = this.popByte();
             console.log(`Operand: ${_CPU.dec2hexByte(operand2)}`);
             this.registers.ac += operand2;
@@ -969,24 +970,24 @@
               this.registers.sr.c = 0;
             }
             this.updateFlags(this.registers.ac);
-          };
-          return [2, f3];
+          });
+          break;
         case 162:
-          f3 = () => {
-            console.log("LDA %");
+          console.log("LDA %");
+          this.subCycleInstructions.push(() => {
             operand = this.popByte();
             console.log(`Operand: ${_CPU.dec2hexByte(operand)}`);
             this.registers.ac = operand;
             this.updateFlags(operand);
-          };
-          return [2, f3];
+          });
+          break;
         case 76:
-          f3 = () => {
+          this.subCycleInstructions.push(() => {
             const jumpAddress = this.popWord();
             console.log(`jump to address: ${_CPU.dec2hexByte(jumpAddress)}`);
             this.registers.pc = jumpAddress;
-          };
-          return [3, f3];
+          });
+          break;
         default:
           console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
       }
@@ -1024,61 +1025,19 @@
     }
     step() {
       console.log("Step");
-      this.dispatchEvent(new CustomEvent("tick"));
-      this.updateDisplay();
+      this.doTick();
     }
     start() {
       console.log("Start");
-      if (this.clockTimeout) {
-        clearTimeout(this.clockTimeout);
+      if (this.isRunning) {
+        return;
       }
-      this.clockTimeout = setInterval(() => {
-        this.isRunning = true;
-        this.dispatchEvent(new CustomEvent("tick"));
-      }, _CPU.MILLISECONDS_PER_CLOCK_TICK);
+      this.isRunning = true;
+      this.doTick();
     }
     stop() {
       console.log("Stop");
       this.isRunning = false;
-      clearTimeout(this.clockTimeout);
-    }
-    /**
-     * Wait until {ticks} ticks are available, then execute {instruction} 
-     *
-     * @param {*} ticks 
-     * @param {*} instruction 
-     * @returns Promise
-     */
-    waitAndDo(ticks, instruction) {
-      return this.waitForTicks(ticks).then(instruction);
-    }
-    /**
-     * 
-     * Waits until the number of ticks are available
-     * 
-     * @param {Number} ticksRequired 
-     * @param {Function} resolve 
-     * @returns Promise
-     */
-    waitForTicks(ticksRequired, resolve) {
-      return new Promise((resolve2, reject) => {
-        const checkForTick = () => {
-          if (this.ticksAvailable >= ticksRequired) {
-            this.ticksAvailable -= ticksRequired;
-            resolve2();
-          } else {
-            if (this.isRunning) {
-              this.newZeroTimeout(checkForTick);
-            } else {
-              setTimeout(() => {
-                this.newZeroTimeout(checkForTick);
-              }, 100);
-            }
-            return false;
-          }
-        };
-        this.newZeroTimeout(checkForTick);
-      });
     }
     /**
      * the ZeroTimeoutQueue is much faster than setTimeout(fn, 0)
