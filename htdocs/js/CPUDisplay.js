@@ -34,11 +34,22 @@ export class CPUDisplay extends LitElement {
         }
 
         button {
-            padding: 0.5em;
+            padding: 0;
+            border: 0;
+            font-size: 400%;
+            cursor: pointer;
+            margin-right: 0.5em;
+            position: relative;
+        }
+
+        button:active {
+            left: 1px;
+            top: 1px;
         }
 
         .buttons {
             clear: both;
+            font-family: sans-serif;
         }
 
 		table {
@@ -192,9 +203,10 @@ ${memDisplay}
     </div>
 
     <div class=buttons>
-        <button @click="${this.step}">Step</button>
-        <button @click="${this.start}">Start</button>
-        <button @click="${this.stop}">Stop</button>
+        <button @click="${this.step}">⏯</button>
+        <button @click="${this.start}">▶️</button>
+<!--        <button @click="${this.fast}">⏩</button> -->
+        <button @click="${this.stop}">⏹</button>
     </div>
 `;
 	}
