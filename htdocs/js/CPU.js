@@ -2,7 +2,6 @@ import { Memory } from './Memory.js';
 import { CPUDisplay } from "./CPUDisplay.js";
 
 export class CPU extends EventTarget {
-    static MILLISECONDS_PER_CLOCK_TICK = 1;
 
     static dec2hexByte(dec) {
         return dec.toString(16).padStart(2, '0').toUpperCase();
@@ -160,22 +159,25 @@ export class CPU extends EventTarget {
                 break;
             
             /**
-             * This instruction establishes a new valne for the program counter.
+             * This instruction establishes a new value for the program counter.
              * 
              * It affects only the program counter in the microprocessor and affects 
              * no flags in the status register.
              */
             case 0x4C: // JMP
                 // console.log('JMP');
-                this.subCycleInstructions.push(() => {
+                (() => {
+                    let lowByte, highByte;
+                    this.subCycleInstructions.push(() => {
+                        lowByte = this.popByte();
+                    });
+    
+                    this.subCycleInstructions.push(() => {
+                        highByte = this.popByte();
 
-                    const jumpAddress = this.popWord();
-
-                    // console.log(`jump to address: ${CPU.dec2hexByte(jumpAddress)}`)
-
-                    // Do the jump
-                    this.registers.pc = jumpAddress;
-                });
+                        this.registers.pc = lowByte + (highByte << 8);
+                    });
+                })();
                 break;
             
             default: 
@@ -192,13 +194,16 @@ export class CPU extends EventTarget {
 
     /**
      * Reads a word in little-endian format
+     * 
+     * Shouldn't use this, should use two popBytes, because each one 
+     * takes a clock cycle
      */
-    popWord() {
-        const lowByte = this.popByte();
-        const highByte = this.popByte();
+    // popWord() {
+    //     const lowByte = this.popByte();
+    //     const highByte = this.popByte();
          
-        return lowByte + (highByte << 8);
-    }
+    //     return lowByte + (highByte << 8);
+    // }
 
     /**
      * 
@@ -222,7 +227,7 @@ export class CPU extends EventTarget {
     step() {
         console.log('Step');
         this.doTick();
-        
+
         if(this.display) {
             this.display.cps = '';
         }

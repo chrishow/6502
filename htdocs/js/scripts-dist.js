@@ -886,7 +886,7 @@
   customElements.define("cpu-display", CPUDisplay);
 
   // htdocs/js/CPU.js
-  var _CPU = class _CPU extends EventTarget {
+  var CPU = class _CPU extends EventTarget {
     static dec2hexByte(dec) {
       return dec.toString(16).padStart(2, "0").toUpperCase();
     }
@@ -981,10 +981,16 @@
           });
           break;
         case 76:
-          this.subCycleInstructions.push(() => {
-            const jumpAddress = this.popWord();
-            this.registers.pc = jumpAddress;
-          });
+          (() => {
+            let lowByte, highByte;
+            this.subCycleInstructions.push(() => {
+              lowByte = this.popByte();
+            });
+            this.subCycleInstructions.push(() => {
+              highByte = this.popByte();
+              this.registers.pc = lowByte + (highByte << 8);
+            });
+          })();
           break;
         default:
           console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
@@ -998,12 +1004,15 @@
     }
     /**
      * Reads a word in little-endian format
+     * 
+     * Shouldn't use this, should use two popBytes, because each one 
+     * takes a clock cycle
      */
-    popWord() {
-      const lowByte = this.popByte();
-      const highByte = this.popByte();
-      return lowByte + (highByte << 8);
-    }
+    // popWord() {
+    //     const lowByte = this.popByte();
+    //     const highByte = this.popByte();
+    //     return lowByte + (highByte << 8);
+    // }
     /**
      * 
      * Updates the 6502 SR register flags 
@@ -1098,8 +1107,6 @@
       clearInterval(this.profileUpdateIntervalTimer);
     }
   };
-  __publicField(_CPU, "MILLISECONDS_PER_CLOCK_TICK", 1);
-  var CPU = _CPU;
 
   // htdocs/js/scripts.js
   document.addEventListener("DOMContentLoaded", function() {
