@@ -991,7 +991,7 @@ ${memDisplay}
             const operand2 = this.popByte();
             this.registers.ac += operand2;
             if (this.registers.ac > 255) {
-              this.registers.ac -= 255;
+              this.registers.ac = this.registers.ac << 255;
               this.registers.sr.c = 1;
             } else {
               this.registers.sr.c = 0;

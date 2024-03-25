@@ -124,7 +124,7 @@ export class CPU extends EventTarget {
                     this.registers.ac += operand;
 
                     if(this.registers.ac > 0xFF) {
-                        this.registers.ac -= 0xFF;
+                        this.registers.ac = (this.registers.ac << 0xFF)
                         this.registers.sr.c = 1;
                     } else {
                         this.registers.sr.c = 0;
