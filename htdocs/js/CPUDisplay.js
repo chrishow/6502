@@ -68,6 +68,12 @@ export class CPUDisplay extends LitElement {
         table.flags td {
             text-align: center;
         }
+
+        .memory {
+            > span {
+                background-color: pink;
+            }
+        }
 	`;
 
 	constructor() {
@@ -107,6 +113,22 @@ export class CPUDisplay extends LitElement {
 
 	// Render the UI as a function of component state
 	render() {
+        let memDisplay = [];
+        let j = 0;
+        for(let i = 0; i < 8; i++) {
+            memDisplay.push(html`${CPUDisplay.formatWord((i*8)+j)}: `);
+            for(let j = 0; j < 8; j++) {
+                let addr = (i*8)+j;
+                if(this.registers.pc == addr) {
+                    memDisplay.push(html`<span>${CPUDisplay.formatByte(this.memory._mem[(i*8)+j])}</span> `);
+
+                } else {
+                    memDisplay.push(html`${CPUDisplay.formatByte(this.memory._mem[(i*8)+j])} `);
+                }
+            }
+            memDisplay.push(html`<br>\n`);
+        }
+
 		return html`<table>
         <tr>
             <th>PC</th>
@@ -165,19 +187,9 @@ export class CPUDisplay extends LitElement {
         </tr>        
     </table>
 
-    <table class=memory>
-        <tr><td class='${this.registers.pc == 0 ? 'active' : ''}'>0x00</td><td>${CPUDisplay.formatByte(this.memory._mem[0])}</td></tr>
-        <tr><td class='${this.registers.pc == 1 ? 'active' : ''}'>0x01</td><td>${CPUDisplay.formatByte(this.memory._mem[1])}</td></tr>
-        <tr><td class='${this.registers.pc == 2 ? 'active' : ''}'>0x02</td><td>${CPUDisplay.formatByte(this.memory._mem[2])}</td></tr>
-        <tr><td class='${this.registers.pc == 3 ? 'active' : ''}'>0x03</td><td>${CPUDisplay.formatByte(this.memory._mem[3])}</td></tr>
-        <tr><td class='${this.registers.pc == 4 ? 'active' : ''}'>0x04</td><td>${CPUDisplay.formatByte(this.memory._mem[4])}</td></tr>
-        <tr><td class='${this.registers.pc == 5 ? 'active' : ''}'>0x05</td><td>${CPUDisplay.formatByte(this.memory._mem[5])}</td></tr>
-        <tr><td class='${this.registers.pc == 6 ? 'active' : ''}'>0x06</td><td>${CPUDisplay.formatByte(this.memory._mem[6])}</td></tr>        
-        <tr><td class='${this.registers.pc == 7 ? 'active' : ''}'>0x07</td><td>${CPUDisplay.formatByte(this.memory._mem[7])}</td></tr>        
-        <tr><td class='${this.registers.pc == 8 ? 'active' : ''}'>0x08</td><td>${CPUDisplay.formatByte(this.memory._mem[8])}</td></tr>        
-        <tr><td class='${this.registers.pc == 9 ? 'active' : ''}'>0x09</td><td>${CPUDisplay.formatByte(this.memory._mem[9])}</td></tr>        
-        <tr><td class='${this.registers.pc == 0x0A ? 'active' : ''}'>0x0A</td><td>${CPUDisplay.formatByte(this.memory._mem[0x0A])}</td></tr>        
-    </table>
+    <div class=memory>
+${memDisplay}
+    </div>
 
     <div class=buttons>
         <button @click="${this.step}">Step</button>
