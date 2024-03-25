@@ -173,6 +173,10 @@ export class CPUDisplay extends LitElement {
         <tr><td class='${this.registers.pc == 4 ? 'active' : ''}'>0x04</td><td>${CPUDisplay.formatByte(this.memory._mem[4])}</td></tr>
         <tr><td class='${this.registers.pc == 5 ? 'active' : ''}'>0x05</td><td>${CPUDisplay.formatByte(this.memory._mem[5])}</td></tr>
         <tr><td class='${this.registers.pc == 6 ? 'active' : ''}'>0x06</td><td>${CPUDisplay.formatByte(this.memory._mem[6])}</td></tr>        
+        <tr><td class='${this.registers.pc == 7 ? 'active' : ''}'>0x07</td><td>${CPUDisplay.formatByte(this.memory._mem[7])}</td></tr>        
+        <tr><td class='${this.registers.pc == 8 ? 'active' : ''}'>0x08</td><td>${CPUDisplay.formatByte(this.memory._mem[8])}</td></tr>        
+        <tr><td class='${this.registers.pc == 9 ? 'active' : ''}'>0x09</td><td>${CPUDisplay.formatByte(this.memory._mem[9])}</td></tr>        
+        <tr><td class='${this.registers.pc == 0x0A ? 'active' : ''}'>0x0A</td><td>${CPUDisplay.formatByte(this.memory._mem[0x0A])}</td></tr>        
     </table>
 
     <div class=buttons>

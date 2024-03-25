@@ -164,7 +164,7 @@ export class CPU extends EventTarget {
              * It affects only the program counter in the microprocessor and affects 
              * no flags in the status register.
              */
-            case 0x4C: // JMP
+            case 0x4C: // JMP, 3 cycles
                 // console.log('JMP');
                 (() => {
                     let lowByte, highByte;
@@ -179,6 +179,29 @@ export class CPU extends EventTarget {
                     });
                 })();
                 break;
+
+            case 0x8D: // STA #, 4 cycles
+                (() => {
+                    let lowByte, highByte;
+
+                    this.subCycleInstructions.push(() => {
+                        lowByte = this.popByte();
+                    });
+    
+                    this.subCycleInstructions.push(() => {
+                        highByte = this.popByte();
+                    });
+
+                    this.subCycleInstructions.push(() => {
+                        const addr = lowByte + (highByte << 8);
+                        // console.log(`STA ${this.registers.ac} to ${addr}`);
+                        this.memory.writeByte(addr, this.registers.ac);
+                        this.registers.pc++;
+                    });
+
+                })();
+
+            break;
             
             default: 
                 console.log(`Unknown opcode '${CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);

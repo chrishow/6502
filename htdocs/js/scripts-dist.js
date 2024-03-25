@@ -822,6 +822,10 @@
         <tr><td class='${this.registers.pc == 4 ? "active" : ""}'>0x04</td><td>${_CPUDisplay.formatByte(this.memory._mem[4])}</td></tr>
         <tr><td class='${this.registers.pc == 5 ? "active" : ""}'>0x05</td><td>${_CPUDisplay.formatByte(this.memory._mem[5])}</td></tr>
         <tr><td class='${this.registers.pc == 6 ? "active" : ""}'>0x06</td><td>${_CPUDisplay.formatByte(this.memory._mem[6])}</td></tr>        
+        <tr><td class='${this.registers.pc == 7 ? "active" : ""}'>0x07</td><td>${_CPUDisplay.formatByte(this.memory._mem[7])}</td></tr>        
+        <tr><td class='${this.registers.pc == 8 ? "active" : ""}'>0x08</td><td>${_CPUDisplay.formatByte(this.memory._mem[8])}</td></tr>        
+        <tr><td class='${this.registers.pc == 9 ? "active" : ""}'>0x09</td><td>${_CPUDisplay.formatByte(this.memory._mem[9])}</td></tr>        
+        <tr><td class='${this.registers.pc == 10 ? "active" : ""}'>0x0A</td><td>${_CPUDisplay.formatByte(this.memory._mem[10])}</td></tr>        
     </table>
 
     <div class=buttons>
@@ -992,6 +996,22 @@
             });
           })();
           break;
+        case 141:
+          (() => {
+            let lowByte, highByte;
+            this.subCycleInstructions.push(() => {
+              lowByte = this.popByte();
+            });
+            this.subCycleInstructions.push(() => {
+              highByte = this.popByte();
+            });
+            this.subCycleInstructions.push(() => {
+              const addr = lowByte + (highByte << 8);
+              this.memory.writeByte(addr, this.registers.ac);
+              this.registers.pc++;
+            });
+          })();
+          break;
         default:
           console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
       }
@@ -1115,7 +1135,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(0, "69 01 4C 00 00");
+    cpu.memory.hexLoad(0, "69 01 8D 0A 00 0A 4C 00 00");
     cpu.boot();
   });
 })();

@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	// cpu.memory.writeByte(PC++, 0x00); // Low 
 	// cpu.memory.writeByte(PC++, 0x00); // High
 
-	cpu.memory.hexLoad(0x00, '69 01 4C 00 00');
+	cpu.memory.hexLoad(0x00, '69 01 8D 0A 00 0A 4C 00 00');
 
 
 	cpu.boot();
