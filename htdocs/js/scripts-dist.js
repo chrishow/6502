@@ -833,10 +833,10 @@ ${memDisplay}
     </div>
 
     <div class=buttons>
-        <button @click="${this.step}">⏯</button>
-        <button @click="${this.start}">▶️</button>
+        <button @click="${this.step}" title='Step'>⏯</button>
+        <button @click="${this.start}" title='Start'>▶️</button>
 <!--        <button @click="${this.fast}">⏩</button> -->
-        <button @click="${this.stop}">⏹</button>
+        <button @click="${this.stop}" title='Stop'>⏹</button>
     </div>
 `;
     }
@@ -860,7 +860,7 @@ ${memDisplay}
             border: 0;
             font-size: 400%;
             cursor: pointer;
-            margin-right: 0.5em;
+            margin-right: 0.125em;
             position: relative;
         }
 
