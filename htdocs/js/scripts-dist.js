@@ -759,7 +759,7 @@
       let memDisplay = [];
       let j2 = 0;
       for (let i4 = 0; i4 < 8; i4++) {
-        memDisplay.push(x`${_CPUDisplay.formatWord(i4 * 8 + j2)}: `);
+        memDisplay.push(x`0x${_CPUDisplay.formatWord(i4 * 8 + j2)}: `);
         for (let j3 = 0; j3 < 8; j3++) {
           let addr = i4 * 8 + j3;
           if (this.registers.pc == addr) {
@@ -951,7 +951,7 @@ ${memDisplay}
         sr: {
           n: 0,
           v: 0,
-          b: 0,
+          b: 1,
           d: 0,
           i: 0,
           z: 0,
@@ -986,12 +986,18 @@ ${memDisplay}
         case 0:
           this.stop();
           break;
-        case 105:
+        case 24:
           this.subCycleInstructions.push(() => {
-            const operand2 = this.popByte();
-            this.registers.ac += operand2;
+            this.registers.sr.c = 0;
+          });
+          break;
+        case 105:
+          console.log("ADC %");
+          this.subCycleInstructions.push(() => {
+            const operand = this.popByte();
+            this.registers.ac += operand;
             if (this.registers.ac > 255) {
-              this.registers.ac = this.registers.ac << 255;
+              this.registers.ac -= 256;
               this.registers.sr.c = 1;
             } else {
               this.registers.sr.c = 0;
@@ -999,9 +1005,9 @@ ${memDisplay}
             this.updateFlags(this.registers.ac);
           });
           break;
-        case 162:
+        case 169:
           this.subCycleInstructions.push(() => {
-            operand = this.popByte();
+            const operand = this.popByte();
             this.registers.ac = operand;
             this.updateFlags(operand);
           });
@@ -1033,6 +1039,18 @@ ${memDisplay}
               this.registers.pc++;
             });
           })();
+          break;
+        case 170:
+          this.subCycleInstructions.push(() => {
+            this.registers.x = this.registers.ac;
+            this.updateFlags(this.registers.x);
+          });
+          break;
+        case 232:
+          this.subCycleInstructions.push(() => {
+            this.registers.x++;
+            this.updateFlags(this.registers.x);
+          });
           break;
         default:
           console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
@@ -1157,7 +1175,7 @@ ${memDisplay}
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(0, "69 01 8D 0A 00 0A 4C 00 00");
+    cpu.memory.hexLoad(0, "a9 c0 aa e8 69 c4 00");
     cpu.boot();
   });
 })();

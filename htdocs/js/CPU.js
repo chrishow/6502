@@ -53,7 +53,7 @@ export class CPU extends EventTarget {
             sr: {
                 n: 0,
                 v: 0,
-                b: 0,
+                b: 1,
                 d: 0,
                 i: 0,
                 z: 0,
@@ -103,6 +103,14 @@ export class CPU extends EventTarget {
                 // });
                 break;
 
+            case 0x18: // CLC -- Clear carry flag
+                // console.log('ADC %');
+                this.subCycleInstructions.push(() => {
+                    this.registers.sr.c = 0;
+                });
+            break;
+
+                
             /**
              * This instruction adds the value of memory and carry from the previous operation 
              * to the value of the accumulator and stores the result in the accumulator.
@@ -116,7 +124,7 @@ export class CPU extends EventTarget {
              * otherwise the zero flag is reset.
              */
             case 0x69: // ADC - Add Memory to Accumulator with Carry, immediate
-                // console.log('ADC %');
+                console.log('ADC %');
                 this.subCycleInstructions.push(() => {
                     const operand = this.popByte();
                     // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
@@ -124,7 +132,7 @@ export class CPU extends EventTarget {
                     this.registers.ac += operand;
 
                     if(this.registers.ac > 0xFF) {
-                        this.registers.ac = (this.registers.ac << 0xFF)
+                        this.registers.ac -= 0x100;
                         this.registers.sr.c = 1;
                     } else {
                         this.registers.sr.c = 0;
@@ -145,11 +153,11 @@ export class CPU extends EventTarget {
              * the LDA, otherwise resets the zero flag; sets the negative flag if bit 7 of 
              * the accumulator is a 1, other­wise resets the negative flag.
              */
-            case 0xA2: // LDA immediate
+            case 0xA9: // LDA immediate
                 // console.log('LDA %');
                 this.subCycleInstructions.push(() => {
 
-                    operand = this.popByte();
+                    const operand = this.popByte();
                     // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
 
                     this.registers.ac = operand;
@@ -200,8 +208,24 @@ export class CPU extends EventTarget {
                     });
 
                 })();
-
             break;
+
+            case 0xAA: // TAX transfer acc to x
+                this.subCycleInstructions.push(() => {
+                    this.registers.x = this.registers.ac;
+
+                    this.updateFlags(this.registers.x);
+                });
+            break;
+
+            case 0xE8: // INX - Increment x
+                this.subCycleInstructions.push(() => {
+                    this.registers.x++;
+
+                    this.updateFlags(this.registers.x);
+                });
+            break;
+
             
             default: 
                 console.log(`Unknown opcode '${CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
