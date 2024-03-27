@@ -34,6 +34,7 @@ export class CPUDisplay extends LitElement {
         }
 
         button {
+            /* font-family: system-ui, sans-serif; */
             padding: 0;
             border: 0;
             font-size: 400%;
