@@ -1,5 +1,5 @@
 import { LitElement, css, html } from 'lit';
-import { CPUDisplayBit } from './CPUDisplayBit';
+import { CPUDisplayBit } from './CPUDisplayBit.mjs';
 
 export class CPUDisplay extends LitElement {
     static formatWord(word) {
@@ -45,6 +45,11 @@ export class CPUDisplay extends LitElement {
         button:active {
             left: 1px;
             top: 1px;
+        }
+
+        button[disabled] {
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .buttons {
@@ -119,6 +124,10 @@ export class CPUDisplay extends LitElement {
 
     stop() {
         this.cpu.stop();
+    }
+
+    fastForward() {
+        this.cpu.fastForward();
     }
 
 
@@ -203,10 +212,10 @@ ${memDisplay}
     </div>
 
     <div class=buttons>
-        <button @click="${this.step}" title='Step'>⏯</button>
-        <button @click="${this.start}" title='Start'>▶️</button>
-<!--        <button @click="${this.fast}">⏩</button> -->
-        <button @click="${this.stop}" title='Stop'>⏹</button>
+        <button @click="${this.step}" title='Step' ?disabled=${this.cpu.isRunning}>⏯</button>
+        <button @click="${this.start}" title='Start'  ?disabled=${this.cpu.isRunning}>▶️</button>
+        <button @click="${this.fastForward}"  ?disabled=${this.cpu.isRunning}>⏩</button>
+        <button @click="${this.stop}" title='Stop' ?disabled=${!this.cpu.isRunning}>⏹</button>
     </div>
 `;
 	}

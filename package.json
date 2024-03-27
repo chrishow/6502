@@ -14,7 +14,8 @@
     "scripts": {
         "build": "node esbuild-compile.mjs",
         "watch": "node esbuild-watch.mjs",
-        "jshint": "jshint js/scripts.js"
+        "jshint": "jshint js/scripts.js",
+        "test": "node test.mjs"
     },
     "dependencies": {
         "@barba/core": "^2.9.7",

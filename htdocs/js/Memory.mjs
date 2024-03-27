@@ -11,7 +11,8 @@ export class Memory {
 
 
     initMemory() {
-        this._mem = new Array(Memory.MEM_SIZE).fill(0);
+        // this._mem = new Array(Memory.MEM_SIZE).fill(0);
+        this._mem = new Uint8Array(Memory.MEM_SIZE);
     }
 
     readByte(location) {

@@ -1,7 +1,8 @@
-import { Memory } from './Memory.js';
-import { CPUDisplay } from "./CPUDisplay.js";
+import { Memory } from './Memory.mjs';
+import { CPUDisplay } from "./CPUDisplay.mjs";
 
 export class CPU extends EventTarget {
+    static FAST_FORWARD_CYCLE_BATCH_SIZE = 9973;
 
     static dec2hexByte(dec) {
         return dec.toString(16).padStart(2, '0').toUpperCase();
@@ -15,12 +16,13 @@ export class CPU extends EventTarget {
         this.initZeroTimeoutQueue();
 
         this.isRunning = false;
+        this.isFastForwarding = false;
         this.tickCount = 0;
         this.subCycleInstructions = [];
 
         this.display = undefined;
 
-        if (options.displayContainer) {
+        if (options && options.displayContainer) {
             this.display = document.createElement('cpu-display');
             this.display.cpu = this;
             this.display.memory = this.memory;
@@ -35,12 +37,25 @@ export class CPU extends EventTarget {
         this.tickCount++;
         this.processTick();
 
-        if(this.isRunning) {
-            // setTimeout(this.doTick.bind(this), 0);
-            this.newZeroTimeout(this.doTick.bind(this));
+        if(this.isFastForwarding) {
+            for(let i = 0; i < CPU.FAST_FORWARD_CYCLE_BATCH_SIZE; i++) {
+                this.tickCount++;
+                this.processTick();
+            }
+
+            this.updateDisplay();
+
+            // Do another batch
+            this.newZeroTimeout(this.doTick.bind(this));            
+        } else {
+            this.updateDisplay();
+
+            if(this.isRunning) {
+                // setTimeout(this.doTick.bind(this), 0);
+                this.newZeroTimeout(this.doTick.bind(this));
+            }    
         }
 
-        this.updateDisplay();
     }
 
     initRegisters() {
@@ -124,7 +139,7 @@ export class CPU extends EventTarget {
              * otherwise the zero flag is reset.
              */
             case 0x69: // ADC - Add Memory to Accumulator with Carry, immediate
-                console.log('ADC %');
+                // console.log('ADC %');
                 this.subCycleInstructions.push(() => {
                     const operand = this.popByte();
                     // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
@@ -272,32 +287,52 @@ export class CPU extends EventTarget {
     }
 
     step() {
-        console.log('Step');
-        this.doTick();
-
-        if(this.display) {
-            this.display.cps = '';
-        }
-    }
-
-    start() {
-        console.log('Start');
-
-        this.startProfiling();
+        // console.log('Step');
 
         if(this.isRunning) {
             // Already running
             return;
         }
 
+        this.doTick();
+        this.updateDisplay();
+
+        if(this.display) {
+            this.display.cps = '';
+        }
+    }
+
+    steps(n) {
+        for(let i = 0; i < n; i++) {
+            this.doTick();
+        }
+        this.updateDisplay();
+    }
+
+    start() {
+        // console.log('Start');
+        if(this.isRunning) {
+            // Already running
+            return;
+        }
+
+        this.startProfiling();
+
         this.isRunning = true;
-        this.doTick();        
+        this.doTick();   
+    }
+
+    fastForward() {
+        this.isFastForwarding = true;
+        this.start();
     }
 
     stop() {
-        console.log('Stop');
+        // console.log('Stop');
         this.stopProfiling();
         this.isRunning = false;
+        this.isFastForwarding = false;
+        this.updateDisplay();
     }
 
 
@@ -307,15 +342,18 @@ export class CPU extends EventTarget {
     initZeroTimeoutQueue() {
         this.timeoutsQueue = [];
 
-        window.addEventListener("message", (event) =>  {
-            if (event.source == window && event.data == 'zeroTimeoutPushed') {
-                event.stopPropagation();
-                if (this.timeoutsQueue.length > 0) {
-                    var fn = this.timeoutsQueue.shift();
-                    fn();
+        if(typeof window !== 'undefined') {
+            window.addEventListener("message", (event) =>  {
+                if (event.source == window && event.data == 'zeroTimeoutPushed') {
+                    event.stopPropagation();
+                    if (this.timeoutsQueue.length > 0) {
+                        var fn = this.timeoutsQueue.shift();
+                        fn();
+                    }
                 }
-            }
-        }, true);
+            }, true);
+        }
+
     }
 
     /**
@@ -326,7 +364,13 @@ export class CPU extends EventTarget {
     newZeroTimeout(fn) {
         // console.log('pushed fn to timeoutsQueue:', fn);
         this.timeoutsQueue.push(fn);
-        window.postMessage('zeroTimeoutPushed', "*");
+
+        if(typeof window !== 'undefined') {
+            window.postMessage('zeroTimeoutPushed', "*");
+
+        } else {
+            setTimeout(fn, 0);
+        }
     }
 
     /**
@@ -363,6 +407,7 @@ export class CPU extends EventTarget {
         if(this.display) {
             this.display.cps = Math.round(ticksProcessed / timeTaken);
         }
+        this.updateDisplay();
     }
     
     stopProfiling() {

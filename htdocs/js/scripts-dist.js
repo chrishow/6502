@@ -40,14 +40,14 @@
     });
   };
 
-  // htdocs/js/Memory.js
+  // htdocs/js/Memory.mjs
   var _Memory = class _Memory {
     constructor() {
       this.initMemory();
       return this;
     }
     initMemory() {
-      this._mem = new Array(_Memory.MEM_SIZE).fill(0);
+      this._mem = new Uint8Array(_Memory.MEM_SIZE);
     }
     readByte(location) {
       return this._mem[location];
@@ -691,7 +691,7 @@
   var _a5;
   ((_a5 = globalThis.litElementVersions) != null ? _a5 : globalThis.litElementVersions = []).push("4.0.4");
 
-  // htdocs/js/CPUDisplayBit.js
+  // htdocs/js/CPUDisplayBit.mjs
   var CPUDisplayBit = class extends s3 {
     static get properties() {
       return {
@@ -709,7 +709,7 @@
   };
   customElements.define("cpu-display-bit", CPUDisplayBit);
 
-  // htdocs/js/CPUDisplay.js
+  // htdocs/js/CPUDisplay.mjs
   var _CPUDisplay = class _CPUDisplay extends s3 {
     static formatWord(word) {
       return word.toString(16).padStart(4, "0").toUpperCase();
@@ -753,6 +753,9 @@
     }
     stop() {
       this.cpu.stop();
+    }
+    fastForward() {
+      this.cpu.fastForward();
     }
     // Render the UI as a function of component state
     render() {
@@ -833,10 +836,10 @@ ${memDisplay}
     </div>
 
     <div class=buttons>
-        <button @click="${this.step}" title='Step'>⏯</button>
-        <button @click="${this.start}" title='Start'>▶️</button>
-<!--        <button @click="${this.fast}">⏩</button> -->
-        <button @click="${this.stop}" title='Stop'>⏹</button>
+        <button @click="${this.step}" title='Step' ?disabled=${this.cpu.isRunning}>⏯</button>
+        <button @click="${this.start}" title='Start'  ?disabled=${this.cpu.isRunning}>▶️</button>
+        <button @click="${this.fastForward}"  ?disabled=${this.cpu.isRunning}>⏩</button>
+        <button @click="${this.stop}" title='Stop' ?disabled=${!this.cpu.isRunning}>⏹</button>
     </div>
 `;
     }
@@ -867,6 +870,11 @@ ${memDisplay}
         button:active {
             left: 1px;
             top: 1px;
+        }
+
+        button[disabled] {
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .buttons {
@@ -911,8 +919,8 @@ ${memDisplay}
   var CPUDisplay = _CPUDisplay;
   customElements.define("cpu-display", CPUDisplay);
 
-  // htdocs/js/CPU.js
-  var CPU = class _CPU extends EventTarget {
+  // htdocs/js/CPU.mjs
+  var _CPU = class _CPU extends EventTarget {
     static dec2hexByte(dec) {
       return dec.toString(16).padStart(2, "0").toUpperCase();
     }
@@ -922,10 +930,11 @@ ${memDisplay}
       this.initMemory();
       this.initZeroTimeoutQueue();
       this.isRunning = false;
+      this.isFastForwarding = false;
       this.tickCount = 0;
       this.subCycleInstructions = [];
       this.display = void 0;
-      if (options.displayContainer) {
+      if (options && options.displayContainer) {
         this.display = document.createElement("cpu-display");
         this.display.cpu = this;
         this.display.memory = this.memory;
@@ -936,10 +945,19 @@ ${memDisplay}
     doTick() {
       this.tickCount++;
       this.processTick();
-      if (this.isRunning) {
+      if (this.isFastForwarding) {
+        for (let i4 = 0; i4 < _CPU.FAST_FORWARD_CYCLE_BATCH_SIZE; i4++) {
+          this.tickCount++;
+          this.processTick();
+        }
+        this.updateDisplay();
         this.newZeroTimeout(this.doTick.bind(this));
+      } else {
+        this.updateDisplay();
+        if (this.isRunning) {
+          this.newZeroTimeout(this.doTick.bind(this));
+        }
       }
-      this.updateDisplay();
     }
     initRegisters() {
       this.registers = {
@@ -992,7 +1010,6 @@ ${memDisplay}
           });
           break;
         case 105:
-          console.log("ADC %");
           this.subCycleInstructions.push(() => {
             const operand = this.popByte();
             this.registers.ac += operand;
@@ -1091,40 +1108,55 @@ ${memDisplay}
       }
     }
     step() {
-      console.log("Step");
+      if (this.isRunning) {
+        return;
+      }
       this.doTick();
+      this.updateDisplay();
       if (this.display) {
         this.display.cps = "";
       }
     }
+    steps(n4) {
+      for (let i4 = 0; i4 < n4; i4++) {
+        this.doTick();
+      }
+      this.updateDisplay();
+    }
     start() {
-      console.log("Start");
-      this.startProfiling();
       if (this.isRunning) {
         return;
       }
+      this.startProfiling();
       this.isRunning = true;
       this.doTick();
     }
+    fastForward() {
+      this.isFastForwarding = true;
+      this.start();
+    }
     stop() {
-      console.log("Stop");
       this.stopProfiling();
       this.isRunning = false;
+      this.isFastForwarding = false;
+      this.updateDisplay();
     }
     /**
      * the ZeroTimeoutQueue is much faster than setTimeout(fn, 0)
      */
     initZeroTimeoutQueue() {
       this.timeoutsQueue = [];
-      window.addEventListener("message", (event) => {
-        if (event.source == window && event.data == "zeroTimeoutPushed") {
-          event.stopPropagation();
-          if (this.timeoutsQueue.length > 0) {
-            var fn = this.timeoutsQueue.shift();
-            fn();
+      if (typeof window !== "undefined") {
+        window.addEventListener("message", (event) => {
+          if (event.source == window && event.data == "zeroTimeoutPushed") {
+            event.stopPropagation();
+            if (this.timeoutsQueue.length > 0) {
+              var fn = this.timeoutsQueue.shift();
+              fn();
+            }
           }
-        }
-      }, true);
+        }, true);
+      }
     }
     /**
      * Add a closure to the queue to be run as soon as possible
@@ -1133,7 +1165,11 @@ ${memDisplay}
      */
     newZeroTimeout(fn) {
       this.timeoutsQueue.push(fn);
-      window.postMessage("zeroTimeoutPushed", "*");
+      if (typeof window !== "undefined") {
+        window.postMessage("zeroTimeoutPushed", "*");
+      } else {
+        setTimeout(fn, 0);
+      }
     }
     /**
      * Update the display of the CPU (if there is one attached)
@@ -1162,11 +1198,14 @@ ${memDisplay}
       if (this.display) {
         this.display.cps = Math.round(ticksProcessed / timeTaken);
       }
+      this.updateDisplay();
     }
     stopProfiling() {
       clearInterval(this.profileUpdateIntervalTimer);
     }
   };
+  __publicField(_CPU, "FAST_FORWARD_CYCLE_BATCH_SIZE", 9973);
+  var CPU = _CPU;
 
   // htdocs/js/scripts.js
   document.addEventListener("DOMContentLoaded", function() {
@@ -1175,7 +1214,7 @@ ${memDisplay}
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(0, "a9 c0 aa e8 69 c4 00");
+    cpu.memory.hexLoad(0, "69 01 8D 0A 00 0A 4C 00 00");
     cpu.boot();
   });
 })();
