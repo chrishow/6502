@@ -140,17 +140,18 @@ export class CPUDisplay extends LitElement {
 
 	// Render the UI as a function of component state
 	render() {
+        const offset = 0x0600;
+
         let memDisplay = [];
         let j = 0;
         for(let i = 0; i < 8; i++) {
-            memDisplay.push(html`0x${CPUDisplay.formatWord((i*8)+j)}: `);
+            memDisplay.push(html`0x${CPUDisplay.formatWord(offset + (i*8)+j)}: `);
             for(let j = 0; j < 8; j++) {
-                let addr = (i*8)+j;
+                let addr = offset + (i*8)+j;
                 if(this.registers.pc == addr) {
-                    memDisplay.push(html`<span>${CPUDisplay.formatByte(this.memory._mem[(i*8)+j])}</span> `);
-
+                    memDisplay.push(html`<span>${CPUDisplay.formatByte(this.memory._mem[addr])}</span> `);
                 } else {
-                    memDisplay.push(html`${CPUDisplay.formatByte(this.memory._mem[(i*8)+j])} `);
+                    memDisplay.push(html`${CPUDisplay.formatByte(this.memory._mem[addr])} `);
                 }
             }
             memDisplay.push(html`<br>\n`);

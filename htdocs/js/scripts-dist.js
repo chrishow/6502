@@ -42,6 +42,7 @@
 
   // htdocs/js/Memory.mjs
   var _Memory = class _Memory {
+    // static MEM_SIZE = 128;
     constructor() {
       this.initMemory();
       return this;
@@ -62,8 +63,7 @@
       });
     }
   };
-  // static MEM_SIZE = 16 * 1024;
-  __publicField(_Memory, "MEM_SIZE", 128);
+  __publicField(_Memory, "MEM_SIZE", 16 * 1024);
   var Memory = _Memory;
 
   // node_modules/@lit/reactive-element/css-tag.js
@@ -759,16 +759,17 @@
     }
     // Render the UI as a function of component state
     render() {
+      const offset = 1536;
       let memDisplay = [];
       let j2 = 0;
       for (let i4 = 0; i4 < 8; i4++) {
-        memDisplay.push(x`0x${_CPUDisplay.formatWord(i4 * 8 + j2)}: `);
+        memDisplay.push(x`0x${_CPUDisplay.formatWord(offset + i4 * 8 + j2)}: `);
         for (let j3 = 0; j3 < 8; j3++) {
-          let addr = i4 * 8 + j3;
+          let addr = offset + i4 * 8 + j3;
           if (this.registers.pc == addr) {
-            memDisplay.push(x`<span>${_CPUDisplay.formatByte(this.memory._mem[i4 * 8 + j3])}</span> `);
+            memDisplay.push(x`<span>${_CPUDisplay.formatByte(this.memory._mem[addr])}</span> `);
           } else {
-            memDisplay.push(x`${_CPUDisplay.formatByte(this.memory._mem[i4 * 8 + j3])} `);
+            memDisplay.push(x`${_CPUDisplay.formatByte(this.memory._mem[addr])} `);
           }
         }
         memDisplay.push(x`<br>\n`);
@@ -959,7 +960,7 @@
     /* 5 */
     [["BVC", "REL"], ["EOR", "INDY"], [null, null], [null, null], [null, null], ["EOR", "ZPGX"], ["LSR", "ZPGX"], [null, null], ["CLI", "IMPL"], ["EOR", "ABSY"], [null, null], [null, null], [null, null], ["EOR", "ABSX"], ["LSR", "ABSX"], [null, null]],
     /* 6 */
-    [["RTS", "IMPL"], ["ADC", "XIND"], [null, null], [null, null], [null, null], ["ADC", "ZPG"], ["ROR", "ZPG"], [null, null], ["PLA", "IMPL"], ["ADC", "#"], ["ROR", "A"], [null, null], ["JMP", "ind"], ["ADC", "ABS"], ["ROR", "ABS"], [null, null]],
+    [["RTS", "IMPL"], ["ADC", "XIND"], [null, null], [null, null], [null, null], ["ADC", "ZPG"], ["ROR", "ZPG"], [null, null], ["PLA", "IMPL"], ["ADC", "#"], ["ROR", "A"], [null, null], ["JMP", "IND"], ["ADC", "ABS"], ["ROR", "ABS"], [null, null]],
     /* 7 */
     [["BVS", "REL"], ["ADC", "INDY"], [null, null], [null, null], [null, null], ["ADC", "ZPGX"], ["ROR", "ZPGX"], [null, null], ["SEI", "IMPL"], ["ADC", "ABSY"], [null, null], [null, null], [null, null], ["ADC", "ABSX"], ["ROR", "ABSX"], [null, null]],
     /* 8 */
@@ -1029,7 +1030,7 @@
         ac: 0,
         x: 0,
         y: 0,
-        sp: 0,
+        sp: 255,
         sr: {
           n: 0,
           v: 0,
@@ -1135,6 +1136,26 @@
             });
           })();
           break;
+        case "CMP":
+          (() => {
+            let operand = {};
+            if (mode !== "#") {
+              this.getOperand(mode, operand);
+            }
+            this.queueStep(() => {
+              if (mode === "#") {
+                this.getOperand(mode, operand);
+              }
+              let result = this.registers.ac - operand.value;
+              if (result < 0) {
+                this.registers.sr.c = 0;
+              } else {
+                this.registers.sr.c = 1;
+              }
+              this.updateFlags(result);
+            });
+          })();
+          break;
         case "DEX":
           this.queueStep(() => {
             this.registers.x--;
@@ -1152,19 +1173,30 @@
             let operand = {};
             this.getOperand(mode, operand);
             this.queueStep(() => {
-              console.log(`JMP ${this.registers.ac} to ${_CPU.dec2hexByte(operand.value)}`);
+              console.log(`JMP to ${_CPU.dec2hexByte(operand.value)}`);
               this.registers.pc = operand.value;
             });
           })();
           break;
         case "LDA":
-          this.queueStep(() => {
+          (() => {
             let operand = {};
-            this.getOperand(mode, operand);
-            console.log(`LDA  ${_CPU.dec2hexByte(operand.value)}`);
-            this.registers.ac = operand.value;
-            this.updateFlags(this.registers.ac);
-          });
+            if (mode === "#") {
+              this.queueStep(() => {
+                this.getOperand(mode, operand);
+                console.log(`LDA immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
+                this.registers.ac = operand.value;
+                this.updateFlags(this.registers.ac);
+              });
+            } else {
+              this.getOperand(mode, operand);
+              this.queueStep(() => {
+                console.log(`LDA ${mode} ${_CPU.dec2hexByte(operand.value)}`);
+                this.registers.ac = operand.value;
+                this.updateFlags(this.registers.ac);
+              });
+            }
+          })();
           break;
         case "LDX":
           this.queueStep(() => {
@@ -1173,6 +1205,15 @@
             console.log(`LDX  ${_CPU.dec2hexByte(operand.value)}`);
             this.registers.x = operand.value;
             this.updateFlags(this.registers.x);
+          });
+          break;
+        case "LDY":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            console.log(`LDY  ${_CPU.dec2hexByte(operand.value)}`);
+            this.registers.y = operand.value;
+            this.updateFlags(this.registers.y);
           });
           break;
         case "STA":
@@ -1195,6 +1236,16 @@
             });
           })();
           break;
+        case "STY":
+          (() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              console.log(`STY ${_CPU.dec2hexByte(this.registers.y)} to ${_CPU.dec2hexWord(operand.value)}`);
+              this.memory.writeByte(operand.value, this.registers.y);
+            });
+          })();
+          break;
         case "TAX":
           this.queueStep(() => {
             this.registers.x = this.registers.ac;
@@ -1214,6 +1265,8 @@
     getOperand(mode, operand) {
       switch (mode) {
         case "#":
+          operand.value = this.popByte();
+          break;
         case "REL":
           operand.value = this.popByte();
           break;
@@ -1227,6 +1280,77 @@
               highByte = this.popByte();
               const addr = lowByte + (highByte << 8);
               operand.value = addr;
+            });
+          })();
+          break;
+        case "IND":
+          (() => {
+            let lowByteSrc, highByteSrc, srcAddr;
+            let lowByte, highByte;
+            this.queueStep(() => {
+              lowByteSrc = this.popByte();
+            });
+            this.queueStep(() => {
+              highByteSrc = this.popByte();
+              srcAddr = lowByteSrc + (highByteSrc << 8);
+            });
+            this.queueStep(() => {
+              lowByte = this.memory.readByte(srcAddr);
+            });
+            this.queueStep(() => {
+              highByte = this.memory.readByte(srcAddr + 1);
+              operand.value = lowByte + (highByte << 8);
+            });
+          })();
+          break;
+        case "INDY":
+          (() => {
+            let zeroAddrSrc, srcLowByte, srcHighByte, srcAddr;
+            let lowByte, highByte;
+            this.queueStep(() => {
+              zeroAddrSrc = this.popByte();
+            });
+            this.queueStep(() => {
+              srcLowByte = this.memory.readByte(zeroAddrSrc);
+            });
+            this.queueStep(() => {
+              srcHighByte = this.memory.readByte(zeroAddrSrc + 1 & 255);
+            });
+            this.queueStep(() => {
+              srcAddr = srcLowByte + (srcHighByte << 8) + this.registers.y;
+              operand.value = this.memory.readByte(srcAddr);
+            });
+          })();
+          break;
+        case "ZPG":
+          (() => {
+            let lowByte, highByte;
+            this.queueStep(() => {
+              lowByte = this.popByte();
+              const addr = lowByte;
+              operand.value = addr;
+            });
+          })();
+          break;
+        case "XIND":
+          (() => {
+            let zeroAddrSrc, srcAddr;
+            let lowByte, highByte;
+            this.queueStep(() => {
+              zeroAddrSrc = this.popByte();
+            });
+            this.queueStep(() => {
+              srcAddr = zeroAddrSrc + this.registers.x & 255;
+            });
+            this.queueStep(() => {
+              lowByte = this.memory.readByte(srcAddr);
+            });
+            this.queueStep(() => {
+              highByte = this.memory.readByte(srcAddr + 1);
+            });
+            this.queueStep(() => {
+              const finalAddress = lowByte + (highByte << 8);
+              operand.value = this.memory.readByte(finalAddress);
             });
           })();
           break;
@@ -1383,7 +1507,9 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(0, "a2 08 ca 8e 00 02 e0 03 d0 f8 8e 01 02 00");
+    cpu.memory.hexLoad(1536, "a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7");
+    cpu.registers.pc = 1536;
+    window.cpu = cpu;
     cpu.boot();
   });
 })();

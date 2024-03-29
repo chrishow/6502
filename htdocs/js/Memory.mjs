@@ -1,6 +1,6 @@
 export class Memory {
-    // static MEM_SIZE = 16 * 1024;
-    static MEM_SIZE = 128;
+    static MEM_SIZE = 16 * 1024;
+    // static MEM_SIZE = 128;
 
 
     constructor() {

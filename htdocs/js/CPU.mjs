@@ -67,7 +67,7 @@ export class CPU {
             ac: 0,
             x: 0,
             y: 0,
-            sp: 0,
+            sp: 0xFF,
             sr: {
                 n: 0,
                 v: 0,
@@ -207,6 +207,34 @@ export class CPU {
                 })();
                 break;
 
+            case 'CMP': // Compare ac, or ac - operand
+                (() => {
+                    let operand = {}; // We use an object, so it is passed by reference
+
+                    if(mode !== '#') {
+                        this.getOperand(mode, operand);
+                    }
+
+                    this.queueStep(() => {
+                        if(mode === '#') {
+                            this.getOperand(mode, operand);
+                        }
+
+                        let result = this.registers.ac - operand.value;
+                        
+                        if(result < 0) {
+                            this.registers.sr.c = 0;
+                        } else {
+                            this.registers.sr.c = 1;
+                        }
+
+                        this.updateFlags(result);
+                    });
+
+                })();
+                break;
+
+
             case 'DEX': // Decrement X
                 this.queueStep(() => {
                     this.registers.x--;
@@ -229,23 +257,38 @@ export class CPU {
 
                     this.queueStep(() => {
                         // Do the jump
-                        console.log(`JMP ${this.registers.ac} to ${CPU.dec2hexByte(operand.value)}`);
+                        console.log(`JMP to ${CPU.dec2hexByte(operand.value)}`);
                         this.registers.pc = operand.value;
                     });
 
-                })()
+                })();
                 break;
 
             case 'LDA': // Load into accumulator
-                this.queueStep(() => {
+                (() => {
                     let operand = {}; 
 
-                    this.getOperand(mode, operand);
+                    // this.queueStep(() => {
+                    // });
 
-                    console.log(`LDA  ${CPU.dec2hexByte(operand.value)}`);
-                    this.registers.ac = operand.value;
-                    this.updateFlags(this.registers.ac);
-                });
+                    if(mode === '#') { // Must do all this in one cycle
+                        this.queueStep(() => {
+                            this.getOperand(mode, operand);
+                            console.log(`LDA immediate  ${CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
+                            this.registers.ac = operand.value;
+                            this.updateFlags(this.registers.ac);
+                        });
+
+                    } else {
+                        this.getOperand(mode, operand);
+
+                        this.queueStep(() => {
+                            console.log(`LDA ${mode} ${CPU.dec2hexByte(operand.value)}`);
+                            this.registers.ac = operand.value;
+                            this.updateFlags(this.registers.ac);
+                        });    
+                    }
+                })();
             break;
 
             case 'LDX': // Load into x
@@ -260,6 +303,18 @@ export class CPU {
                 });
             break;
 
+            case 'LDY': // Load into y
+                this.queueStep(() => {
+                    let operand = {}; 
+
+                    this.getOperand(mode, operand);
+
+                    console.log(`LDY  ${CPU.dec2hexByte(operand.value)}`);
+                    this.registers.y = operand.value;
+                    this.updateFlags(this.registers.y);
+                });
+            break;
+
             case 'STA': // Store Accumulator in Memory
                 (() => {
                     let operand = {}; // Memory address to store ac to 
@@ -269,13 +324,13 @@ export class CPU {
                     this.queueStep(() => {
                         // Store the byte
                         console.log(`STA ${CPU.dec2hexByte(this.registers.ac)} to ${CPU.dec2hexByte(operand.value)}`);
-                        this.memory.writeByte(operand.value, this.registers.ac);                    
+                        this.memory.writeByte(operand.value, this.registers.ac);
                     });
 
                 })()
                 break;
 
-            case 'STX': // Store x in Memory
+                case 'STX': // Store x in Memory
                 (() => {
                     let operand = {}; // Memory address to store ac to 
 
@@ -284,7 +339,22 @@ export class CPU {
                     this.queueStep(() => {
                         // Store the byte
                         console.log(`STX ${CPU.dec2hexByte(this.registers.x)} to ${CPU.dec2hexWord(operand.value)}`);
-                        this.memory.writeByte(operand.value, this.registers.x);                    
+                        this.memory.writeByte(operand.value, this.registers.x);        
+                    });
+
+                })()
+                break;
+
+                case 'STY': // Store y in Memory
+                (() => {
+                    let operand = {}; // Memory address to store ac to 
+
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        // Store the byte
+                        console.log(`STY ${CPU.dec2hexByte(this.registers.y)} to ${CPU.dec2hexWord(operand.value)}`);
+                        this.memory.writeByte(operand.value, this.registers.y);
                     });
 
                 })()
@@ -314,7 +384,11 @@ export class CPU {
     getOperand(mode, operand) {
         switch(mode) {
             case '#': // Direct
-            case 'REL': // Relative
+            // Fall through                
+                operand.value = this.popByte();
+                break;
+
+            case 'REL': // Relative TODO FIXME
                 operand.value = this.popByte();
                 break;
 
@@ -329,7 +403,7 @@ export class CPU {
 
                     this.queueStep(() => {
                         highByte = this.popByte();
-                        const addr = lowByte + (highByte << 8)
+                        const addr = lowByte + (highByte << 8);
 
                         // console.log(`Got highByte: ${highByte}`);
 
@@ -337,6 +411,119 @@ export class CPU {
 
                         operand.value = addr;
                     });
+                })();
+                break;
+
+            case 'IND': // Indirect two byte address
+                (() => {
+                    let lowByteSrc, highByteSrc, srcAddr;
+                    let lowByte, highByte;
+
+                    // Get low byte
+                    this.queueStep(() => {
+                        lowByteSrc = this.popByte();
+                    });
+
+                    // get high byte
+                    this.queueStep(() => {
+                        highByteSrc = this.popByte();
+                        srcAddr = lowByteSrc + (highByteSrc << 8);
+                    });
+
+                    // Read low byte from srcAddr
+                    this.queueStep(() => {
+                        lowByte = this.memory.readByte(srcAddr);
+                    });
+
+                    // Read high byte from srcAddr
+                    this.queueStep(() => { // TODO: check for crossing page boundary
+                        highByte = this.memory.readByte(srcAddr + 1);
+                        operand.value = lowByte + (highByte << 8);
+                    });
+
+                    
+                })();
+            break;
+
+            case 'INDY': // The zero page address is dereferenced, and the Y register is added to the resulting address
+                (() => {
+                    let zeroAddrSrc, srcLowByte, srcHighByte, srcAddr;
+                    let lowByte, highByte;
+
+                    // Get low byte
+                    this.queueStep(() => {
+                        zeroAddrSrc = this.popByte();
+                        // console.log(`zeroAddrSrc: ${CPU.dec2hexByte(zeroAddrSrc)}`);
+                    });
+
+                    this.queueStep(() => {
+                        srcLowByte = this.memory.readByte(zeroAddrSrc);
+                        // console.log(`srcLowByte: ${CPU.dec2hexByte(srcLowByte)}`);
+                    });
+
+                    this.queueStep(() => {
+                        srcHighByte = this.memory.readByte((zeroAddrSrc+1) & 0xFF);
+                        // console.log(`srcHighByte: ${CPU.dec2hexByte(srcHighByte)}`);
+                    });
+
+                    this.queueStep(() => {
+                        srcAddr = ((srcLowByte + (srcHighByte << 8)) + this.registers.y);
+                        // console.log(`srcAddr: ${CPU.dec2hexWord(srcAddr)}`);
+
+                        operand.value = this.memory.readByte(srcAddr);
+
+                    });
+                    
+                })();
+                break;
+
+            case 'ZPG': // One-byte Zero page address
+                (() => {
+                    let lowByte, highByte;
+
+                    this.queueStep(() => {
+                        lowByte = this.popByte();
+                        // console.log(`Got lowByte: ${lowByte}`);
+                        const addr = lowByte;
+                        operand.value = addr;
+                    });
+
+                })();
+                break;
+
+            case 'XIND': // Take the zero page address, add the value of the X register to it, then use that to look up a two-byte address
+                (() => {
+                    let zeroAddrSrc, srcAddr;
+                    let lowByte, highByte;
+
+                    // Get low byte
+                    this.queueStep(() => {
+                        zeroAddrSrc = this.popByte();
+                        // console.log(`zeroAddrSrc: ${CPU.dec2hexByte(zeroAddrSrc)}`);
+                    });
+
+                    this.queueStep(() => {
+                        srcAddr = (zeroAddrSrc + this.registers.x) & 0xFF; // Handle overflow to keep in zero page
+                        // console.log(`srcAddr: ${CPU.dec2hexByte(srcAddr)}`);
+                    });
+
+                    this.queueStep(() => {
+                        lowByte = this.memory.readByte(srcAddr);
+                        // console.log(`lowByte: ${CPU.dec2hexByte(lowByte)}`);
+                    });
+
+                    this.queueStep(() => {
+                        highByte = this.memory.readByte(srcAddr + 1);
+                        // console.log(`highByte: ${CPU.dec2hexByte(highByte)}`);
+
+                    });
+
+                    this.queueStep(() => {
+                        const finalAddress = lowByte + (highByte << 8);
+                        operand.value = this.memory.readByte(finalAddress);
+                        // console.log(`operand.value: ${CPU.dec2hexByte(operand.value)}`);
+                    });
+                    
                 })();
                 break;
 
