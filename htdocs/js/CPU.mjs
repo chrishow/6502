@@ -1,16 +1,19 @@
 import { Memory } from './Memory.mjs';
 import { CPUDisplay } from "./CPUDisplay.mjs";
+import { InstructionDecoder } from './InstructionDecoder.mjs';
 
-export class CPU extends EventTarget {
+export class CPU {
     static FAST_FORWARD_CYCLE_BATCH_SIZE = 9973;
 
     static dec2hexByte(dec) {
         return dec.toString(16).padStart(2, '0').toUpperCase();
     }
 
-    constructor(options) {
-        super(); // Required to implement EventTarget
+    static dec2hexWord(dec) {
+        return dec.toString(16).padStart(4, '0').toUpperCase();
+    }
 
+    constructor(options) {
         this.initRegisters();
         this.initMemory();
         this.initZeroTimeoutQueue();
@@ -103,148 +106,254 @@ export class CPU extends EventTarget {
      * Fetches an instruction and executes it
      */
     fetchAndExecute() {
+        let instruction, mode;
         const opcode = this.memory.readByte(this.registers.pc);
+        [instruction, mode] = InstructionDecoder.decodeOpcode(opcode);
+        console.log(`instruction: ${instruction}, mode: ${mode}`);
 
-        switch (opcode) {
-            /**
-             * This isn't actually what a 6502 does for BRK, but will do for now. 
-             * Just serves as a way to stop the program
-             */
-            case 0x00: // BRK
-                // console.log('BRK %');
 
-                // this.subCycleInstructions.push(() => {
-                this.stop();
-                // });
+        switch (instruction) {
+            case 'ADC': // Add Memory to Accumulator with Carry
+                (() => {
+                    let operand = {}; // We use an object, so it is passed by reference
+
+                    if(mode !== '#') {
+                        this.getOperand(mode, operand);
+                    }
+
+                    this.queueStep(() => {
+                        if(mode === '#') {
+                            this.getOperand(mode, operand);
+                        }
+
+                        this.registers.ac += operand.value;
+    
+                        if(this.registers.ac > 0xFF) {
+                            this.registers.ac -= 0x100;
+                            this.registers.sr.c = 1;
+                        } else {
+                            this.registers.sr.c = 0;
+                        }
+                
+                        this.updateFlags(this.registers.ac);
+                    });
+
+                })();
                 break;
 
-            case 0x18: // CLC -- Clear carry flag
-                // console.log('ADC %');
-                this.subCycleInstructions.push(() => {
+            case 'BNE': // branch on Z = 0, operand is two's complement
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.z !== 0) {
+                        console.log(`BNE,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
+                        return;
+                    } 
+
+                    let newAddr = null;
+
+
+                    // Operand is 2s complement
+                    if (operand.value > 0x7f) { 
+                        // A negative offset
+                        newAddr = (this.registers.pc - (0x100 - operand.value));
+                    } else {
+                        // A positive offset
+                        newAddr = (this.registers.pc + operand.value);
+                    }
+
+                    console.log(`BNE jump to ${CPU.dec2hexWord(newAddr)}`);
+                    this.registers.pc = newAddr;
+                      
+                });
+
+                break;
+
+            case 'BRK': // This isn't actually what the 6502 does, we will just stop the program for now
+                this.stop();
+                break;
+
+            case 'CLC': // Clear carry flag
+                this.queueStep(() => {
                     this.registers.sr.c = 0;
                 });
-            break;
+                break;
 
-                
-            /**
-             * This instruction adds the value of memory and carry from the previous operation 
-             * to the value of the accumulator and stores the result in the accumulator.
-             * 
-             * This instruction affects the accumulator; sets the carry flag when the sum of
-             * a binary add exceeds 255 or when the sum of a decimal add exceeds 99, 
-             * otherwise carry is reset. The overflow flag is set when the sign or bit 7 
-             * is changed due to the result exceeding +127 or -128, otherwise overflow is reset. 
-             * The negative flag is set if the accumulator result contains bit 7 on, otherwise 
-             * the negative flag is reset. The zero flag is set if the accumulator result is 0, 
-             * otherwise the zero flag is reset.
-             */
-            case 0x69: // ADC - Add Memory to Accumulator with Carry, immediate
-                // console.log('ADC %');
-                this.subCycleInstructions.push(() => {
-                    const operand = this.popByte();
-                    // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
+            case 'CPX': // Compare x, or x - operand
+                (() => {
+                    let operand = {}; // We use an object, so it is passed by reference
 
-                    this.registers.ac += operand;
-
-                    if(this.registers.ac > 0xFF) {
-                        this.registers.ac -= 0x100;
-                        this.registers.sr.c = 1;
-                    } else {
-                        this.registers.sr.c = 0;
+                    if(mode !== '#') {
+                        this.getOperand(mode, operand);
                     }
-            
+
+                    this.queueStep(() => {
+                        if(mode === '#') {
+                            this.getOperand(mode, operand);
+                        }
+
+                        let result = this.registers.x - operand.value;
+                        
+                        if(result < 0) {
+                            this.registers.sr.c = 0;
+                        } else {
+                            this.registers.sr.c = 1;
+                        }
+
+                        this.updateFlags(result);
+                    });
+
+                })();
+                break;
+
+            case 'DEX': // Decrement X
+                this.queueStep(() => {
+                    this.registers.x--;
+                    this.updateFlags(this.registers.x);
+                });
+                break;
+
+            case 'INX': // Increment X
+                this.queueStep(() => {
+                    this.registers.x++;
+                    this.updateFlags(this.registers.x);
+                });
+                break;
+
+            case 'JMP': // Jump to address
+                (() => {
+                    let operand = {}; // Memory address to store ac to 
+
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        // Do the jump
+                        console.log(`JMP ${this.registers.ac} to ${CPU.dec2hexByte(operand.value)}`);
+                        this.registers.pc = operand.value;
+                    });
+
+                })()
+                break;
+
+            case 'LDA': // Load into accumulator
+                this.queueStep(() => {
+                    let operand = {}; 
+
+                    this.getOperand(mode, operand);
+
+                    console.log(`LDA  ${CPU.dec2hexByte(operand.value)}`);
+                    this.registers.ac = operand.value;
                     this.updateFlags(this.registers.ac);
                 });
-
-                break;
-
-
-            /**
-             * When instruction LDA is executed by the microprocessor, data is transferred from 
-             * memory to the accumulator and stored in the accumulator.
-             * 
-             * LDA affects the contents of the accumulator, does not affect the carry or 
-             * overflow flags; sets the zero flag if the accumulator is zero as a result of 
-             * the LDA, otherwise resets the zero flag; sets the negative flag if bit 7 of 
-             * the accumulator is a 1, other­wise resets the negative flag.
-             */
-            case 0xA9: // LDA immediate
-                // console.log('LDA %');
-                this.subCycleInstructions.push(() => {
-
-                    const operand = this.popByte();
-                    // console.log(`Operand: ${CPU.dec2hexByte(operand)}`);
-
-                    this.registers.ac = operand;
-                    this.updateFlags(operand);
-                });
-
-                break;
-            
-            /**
-             * This instruction establishes a new value for the program counter.
-             * 
-             * It affects only the program counter in the microprocessor and affects 
-             * no flags in the status register.
-             */
-            case 0x4C: // JMP, 3 cycles
-                // console.log('JMP');
-                (() => {
-                    let lowByte, highByte;
-                    this.subCycleInstructions.push(() => {
-                        lowByte = this.popByte();
-                    });
-    
-                    this.subCycleInstructions.push(() => {
-                        highByte = this.popByte();
-
-                        this.registers.pc = lowByte + (highByte << 8);
-                    });
-                })();
-                break;
-
-            case 0x8D: // STA #, 4 cycles
-                (() => {
-                    let lowByte, highByte;
-
-                    this.subCycleInstructions.push(() => {
-                        lowByte = this.popByte();
-                    });
-    
-                    this.subCycleInstructions.push(() => {
-                        highByte = this.popByte();
-                    });
-
-                    this.subCycleInstructions.push(() => {
-                        const addr = lowByte + (highByte << 8);
-                        // console.log(`STA ${this.registers.ac} to ${addr}`);
-                        this.memory.writeByte(addr, this.registers.ac);
-                        this.registers.pc++;
-                    });
-
-                })();
             break;
 
-            case 0xAA: // TAX transfer acc to x
-                this.subCycleInstructions.push(() => {
+            case 'LDX': // Load into x
+                this.queueStep(() => {
+                    let operand = {}; 
+
+                    this.getOperand(mode, operand);
+
+                    console.log(`LDX  ${CPU.dec2hexByte(operand.value)}`);
+                    this.registers.x = operand.value;
+                    this.updateFlags(this.registers.x);
+                });
+            break;
+
+            case 'STA': // Store Accumulator in Memory
+                (() => {
+                    let operand = {}; // Memory address to store ac to 
+
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        // Store the byte
+                        console.log(`STA ${CPU.dec2hexByte(this.registers.ac)} to ${CPU.dec2hexByte(operand.value)}`);
+                        this.memory.writeByte(operand.value, this.registers.ac);                    
+                    });
+
+                })()
+                break;
+
+            case 'STX': // Store x in Memory
+                (() => {
+                    let operand = {}; // Memory address to store ac to 
+
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        // Store the byte
+                        console.log(`STX ${CPU.dec2hexByte(this.registers.x)} to ${CPU.dec2hexWord(operand.value)}`);
+                        this.memory.writeByte(operand.value, this.registers.x);                    
+                    });
+
+                })()
+                break;
+
+
+            case 'TAX': // Transfer ac to x
+                this.queueStep(() => {
                     this.registers.x = this.registers.ac;
 
                     this.updateFlags(this.registers.x);
                 });
-            break;
+                break;
 
-            case 0xE8: // INX - Increment x
-                this.subCycleInstructions.push(() => {
-                    this.registers.x++;
-
-                    this.updateFlags(this.registers.x);
-                });
-            break;
-
-            
-            default: 
-                console.log(`Unknown opcode '${CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
+            default:
+                console.log(`Unknown instruction ${instruction}`);                
         }
+
+    }
+
+    /**
+     * Gets the operand depending on the addressing mode. 
+     * The operand is modified in place
+     * @param {*} mode 
+     * @param {*} operand 
+     */
+    getOperand(mode, operand) {
+        switch(mode) {
+            case '#': // Direct
+            case 'REL': // Relative
+                operand.value = this.popByte();
+                break;
+
+            case 'ABS': // Absolute two byte address
+                (() => {
+                    let lowByte, highByte;
+
+                    this.queueStep(() => {
+                        lowByte = this.popByte();
+                        // console.log(`Got lowByte: ${lowByte}`);
+                    });
+
+                    this.queueStep(() => {
+                        highByte = this.popByte();
+                        const addr = lowByte + (highByte << 8)
+
+                        // console.log(`Got highByte: ${highByte}`);
+
+                        // console.log(`Addr: ${CPU.dec2hexWord(addr)}`);
+
+                        operand.value = addr;
+                    });
+                })();
+                break;
+
+            default:
+                console.log(`Unknown addressing mode '${mode}'`);
+                break;
+        }
+    }
+
+
+    /**
+     * Add a step to the sub instruction queue
+     * @param {function} fn 
+     */
+    queueStep(fn) {
+        // console.log('queueStep: ', fn);
+        this.subCycleInstructions.push(fn);
     }
 
     /**

@@ -86,6 +86,12 @@ export class CPUDisplay extends LitElement {
             text-align: center;
         }
 
+        textarea {
+            width: 30ch;
+            font-size: inherit;
+            display: none;
+        }
+
         .memory {
             > span {
                 background-color: pink;
@@ -208,14 +214,16 @@ export class CPUDisplay extends LitElement {
         </tr>        
     </table>
 
+    
     <div class=memory>
-${memDisplay}
+    <textarea></textarea>
+    ${memDisplay}
     </div>
 
     <div class=buttons>
         <button @click="${this.step}" title='Step' ?disabled=${this.cpu.isRunning}>⏯</button>
         <button @click="${this.start}" title='Start'  ?disabled=${this.cpu.isRunning}>▶️</button>
-        <button @click="${this.fastForward}"  ?disabled=${this.cpu.isRunning}>⏩</button>
+        <button @click="${this.fastForward}" title='Fast forward' ?disabled=${this.cpu.isRunning}>⏩</button>
         <button @click="${this.stop}" title='Stop' ?disabled=${!this.cpu.isRunning}>⏹</button>
     </div>
 `;

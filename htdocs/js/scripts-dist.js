@@ -831,14 +831,16 @@
         </tr>        
     </table>
 
+    
     <div class=memory>
-${memDisplay}
+    <textarea></textarea>
+    ${memDisplay}
     </div>
 
     <div class=buttons>
         <button @click="${this.step}" title='Step' ?disabled=${this.cpu.isRunning}>⏯</button>
         <button @click="${this.start}" title='Start'  ?disabled=${this.cpu.isRunning}>▶️</button>
-        <button @click="${this.fastForward}"  ?disabled=${this.cpu.isRunning}>⏩</button>
+        <button @click="${this.fastForward}" title='Fast forward' ?disabled=${this.cpu.isRunning}>⏩</button>
         <button @click="${this.stop}" title='Stop' ?disabled=${!this.cpu.isRunning}>⏹</button>
     </div>
 `;
@@ -911,6 +913,12 @@ ${memDisplay}
             text-align: center;
         }
 
+        textarea {
+            width: 30ch;
+            font-size: inherit;
+            display: none;
+        }
+
         .memory {
             > span {
                 background-color: pink;
@@ -920,13 +928,68 @@ ${memDisplay}
   var CPUDisplay = _CPUDisplay;
   customElements.define("cpu-display", CPUDisplay);
 
+  // htdocs/js/InstructionDecoder.mjs
+  var _InstructionDecoder = class _InstructionDecoder {
+    /**
+     * Takes an opcode and returns the instruction mnenomic and the addressing mode
+     * 
+     * eg 0xA2 returns [LDX, immediate]
+     * 
+     * @param {byte} opcode 
+     * @returns [{String} instruction, {int} mode]
+     */
+    static decodeOpcode(opcode) {
+      const lowByte = opcode & 15;
+      const highByte = opcode >> 4 & 15;
+      return _InstructionDecoder.opcodes[highByte][lowByte];
+    }
+  };
+  __publicField(_InstructionDecoder, "opcodes", [
+    //          0                1                2             3             4                 5                 6                 7             8                9                A                B             C                D                E                F
+    /* 0 */
+    [["BRK", "IMPL"], ["ORA", "#"], [null, null], [null, null], [null, null], ["ORA", "ZPG"], ["ASL", "ZPG"], [null, null], ["PHP", "IMPL"], ["ORA", "#"], ["ASL", "A"], [null, null], [null, null], ["ORA", "ABS"], ["ASL", "ABS"], [null, null]],
+    /* 1 */
+    [["BPL", "REL"], ["ORA", "INDY"], [null, null], [null, null], [null, null], ["ORA", "ZPGX"], ["ASL", "ZPGX"], [null, null], ["CLC", "IMPL"], ["ORA", "ABSY"], [null, null], [null, null], [null, null], ["ORA", "ABSX"], ["ASL", "ABSX"], [null, null]],
+    /* 2 */
+    [["JSR", "ABS"], ["AND", "XIND"], [null, null], [null, null], ["BIT", "ZPG"], ["AND", "ZPG"], ["ROL", "ZPG"], [null, null], ["PLP", "IMPL"], ["AND", "#"], ["ROL", "A"], [null, null], ["BIT", "ABS"], ["AND", "ABS"], ["ROL", "ABS"], [null, null]],
+    /* 3 */
+    [["BMI", "REL"], ["AND", "INDY"], [null, null], [null, null], [null, null], ["AND", "ZPGX"], ["ROL", "ZPGX"], [null, null], ["SEC", "IMPL"], ["AND", "ABSY"], [null, null], [null, null], [null, null], ["AND", "ABSX"], ["ROL", "ABSX"], [null, null]],
+    /* 4 */
+    [["RTI", "IMPL"], ["EOR", "XIND"], [null, null], [null, null], [null, null], ["EOR", "ZPG"], ["LSR", "ZPG"], [null, null], ["PHA", "IMPL"], ["EOR", "#"], ["LSR", "A"], [null, null], ["JMP", "ABS"], ["EOR", "ABS"], ["LSR", "ABS"], [null, null]],
+    /* 5 */
+    [["BVC", "REL"], ["EOR", "INDY"], [null, null], [null, null], [null, null], ["EOR", "ZPGX"], ["LSR", "ZPGX"], [null, null], ["CLI", "IMPL"], ["EOR", "ABSY"], [null, null], [null, null], [null, null], ["EOR", "ABSX"], ["LSR", "ABSX"], [null, null]],
+    /* 6 */
+    [["RTS", "IMPL"], ["ADC", "XIND"], [null, null], [null, null], [null, null], ["ADC", "ZPG"], ["ROR", "ZPG"], [null, null], ["PLA", "IMPL"], ["ADC", "#"], ["ROR", "A"], [null, null], ["JMP", "ind"], ["ADC", "ABS"], ["ROR", "ABS"], [null, null]],
+    /* 7 */
+    [["BVS", "REL"], ["ADC", "INDY"], [null, null], [null, null], [null, null], ["ADC", "ZPGX"], ["ROR", "ZPGX"], [null, null], ["SEI", "IMPL"], ["ADC", "ABSY"], [null, null], [null, null], [null, null], ["ADC", "ABSX"], ["ROR", "ABSX"], [null, null]],
+    /* 8 */
+    [[null, null], ["STA", "XIND"], [null, null], [null, null], ["STY", "ZPG"], ["STA", "ZPG"], ["STX", "ZPG"], [null, null], ["DEY", "IMPL"], [null, null], ["TXA", "IMPL"], [null, null], ["STY", "ABS"], ["STA", "ABS"], ["STX", "ABS"], [null, null]],
+    /* 9 */
+    [["BCC", "REL"], ["STA", "INDY"], [null, null], [null, null], ["STY", "ZPGX"], ["STA", "ZPGX"], ["STX", "ZPG,Y"], [null, null], ["TYA", "IMPL"], ["STA", "ABSY"], ["TXS", "IMPL"], [null, null], [null, null], ["STA", "ABSX"], [null, null], [null, null]],
+    /* A */
+    [["LDY", "#"], ["LDA", "XIND"], ["LDX", "#"], [null, null], ["LDY", "ZPG"], ["LDA", "ZPG"], ["LDX", "ZPG"], [null, null], ["TAY", "IMPL"], ["LDA", "#"], ["TAX", "IMPL"], [null, null], ["LDY", "ABS"], ["LDA", "ABS"], ["LDX", "ABS"], [null, null]],
+    /* B */
+    [["BCS", "REL"], ["LDA", "INDY"], [null, null], [null, null], ["LDY", "ZPGX"], ["LDA", "ZPGX"], ["LDX", "ZPG,Y"], [null, null], ["CLV", "IMPL"], ["LDA", "ABSY"], ["TSX", "IMPL"], [null, null], ["LDY", "ABSX"], ["LDA", "ABSX"], ["LDX", "ABSY"], [null, null]],
+    /* C */
+    [["CPY", "#"], ["CMP", "XIND"], [null, null], [null, null], ["CPY", "ZPG"], ["CMP", "ZPG"], ["DEC", "ZPG"], [null, null], ["INY", "IMPL"], ["CMP", "#"], ["DEX", "IMPL"], [null, null], ["CPY", "ABS"], ["CMP", "ABS"], ["DEC", "ABS"], [null, null]],
+    /* D */
+    [["BNE", "REL"], ["CMP", "INDY"], [null, null], [null, null], [null, null], ["CMP", "ZPGX"], ["DEC", "ZPGX"], [null, null], ["CLD", "IMPL"], ["CMP", "ABSY"], [null, null], [null, null], [null, null], ["CMP", "ABSX"], ["DEC", "ABSX"], [null, null]],
+    /* E */
+    [["CPX", "#"], ["SBC", "XIND"], [null, null], [null, null], ["CPX", "ZPG"], ["SBC", "ZPG"], ["INC", "ZPG"], [null, null], ["INX", "IMPL"], ["SBC", "#"], ["NOP", "IMPL"], [null, null], ["CPX", "ABS"], ["SBC", "ABS"], ["INC", "ABS"], [null, null]],
+    /* F */
+    [["BEQ", "REL"], ["SBC", "INDY"], [null, null], [null, null], [null, null], ["SBC", "ZPGX"], ["INC", "ZPGX"], [null, null], ["SED", "IMPL"], ["SBC", "ABSY"], [null, null], [null, null], [null, null], ["SBC", "ABSX"], ["INC", "ABSX"], [null, null]]
+  ]);
+  var InstructionDecoder = _InstructionDecoder;
+
   // htdocs/js/CPU.mjs
-  var _CPU = class _CPU extends EventTarget {
+  var _CPU = class _CPU {
     static dec2hexByte(dec) {
       return dec.toString(16).padStart(2, "0").toUpperCase();
     }
+    static dec2hexWord(dec) {
+      return dec.toString(16).padStart(4, "0").toUpperCase();
+    }
     constructor(options) {
-      super();
       this.initRegisters();
       this.initMemory();
       this.initZeroTimeoutQueue();
@@ -1000,79 +1063,184 @@ ${memDisplay}
      * Fetches an instruction and executes it
      */
     fetchAndExecute() {
+      let instruction, mode;
       const opcode = this.memory.readByte(this.registers.pc);
-      switch (opcode) {
-        case 0:
+      [instruction, mode] = InstructionDecoder.decodeOpcode(opcode);
+      console.log(`instruction: ${instruction}, mode: ${mode}`);
+      switch (instruction) {
+        case "ADC":
+          (() => {
+            let operand = {};
+            if (mode !== "#") {
+              this.getOperand(mode, operand);
+            }
+            this.queueStep(() => {
+              if (mode === "#") {
+                this.getOperand(mode, operand);
+              }
+              this.registers.ac += operand.value;
+              if (this.registers.ac > 255) {
+                this.registers.ac -= 256;
+                this.registers.sr.c = 1;
+              } else {
+                this.registers.sr.c = 0;
+              }
+              this.updateFlags(this.registers.ac);
+            });
+          })();
+          break;
+        case "BNE":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            if (this.registers.sr.z !== 0) {
+              console.log(`BNE,  z not 0 but ${_CPU.dec2hexByte(this.registers.sr.z)}`);
+              return;
+            }
+            let newAddr = null;
+            if (operand.value > 127) {
+              newAddr = this.registers.pc - (256 - operand.value);
+            } else {
+              newAddr = this.registers.pc + operand.value;
+            }
+            console.log(`BNE jump to ${_CPU.dec2hexWord(newAddr)}`);
+            this.registers.pc = newAddr;
+          });
+          break;
+        case "BRK":
           this.stop();
           break;
-        case 24:
-          this.subCycleInstructions.push(() => {
+        case "CLC":
+          this.queueStep(() => {
             this.registers.sr.c = 0;
           });
           break;
-        case 105:
-          this.subCycleInstructions.push(() => {
-            const operand = this.popByte();
-            this.registers.ac += operand;
-            if (this.registers.ac > 255) {
-              this.registers.ac -= 256;
-              this.registers.sr.c = 1;
-            } else {
-              this.registers.sr.c = 0;
+        case "CPX":
+          (() => {
+            let operand = {};
+            if (mode !== "#") {
+              this.getOperand(mode, operand);
             }
-            this.updateFlags(this.registers.ac);
-          });
-          break;
-        case 169:
-          this.subCycleInstructions.push(() => {
-            const operand = this.popByte();
-            this.registers.ac = operand;
-            this.updateFlags(operand);
-          });
-          break;
-        case 76:
-          (() => {
-            let lowByte, highByte;
-            this.subCycleInstructions.push(() => {
-              lowByte = this.popByte();
-            });
-            this.subCycleInstructions.push(() => {
-              highByte = this.popByte();
-              this.registers.pc = lowByte + (highByte << 8);
+            this.queueStep(() => {
+              if (mode === "#") {
+                this.getOperand(mode, operand);
+              }
+              let result = this.registers.x - operand.value;
+              if (result < 0) {
+                this.registers.sr.c = 0;
+              } else {
+                this.registers.sr.c = 1;
+              }
+              this.updateFlags(result);
             });
           })();
           break;
-        case 141:
-          (() => {
-            let lowByte, highByte;
-            this.subCycleInstructions.push(() => {
-              lowByte = this.popByte();
-            });
-            this.subCycleInstructions.push(() => {
-              highByte = this.popByte();
-            });
-            this.subCycleInstructions.push(() => {
-              const addr = lowByte + (highByte << 8);
-              this.memory.writeByte(addr, this.registers.ac);
-              this.registers.pc++;
-            });
-          })();
-          break;
-        case 170:
-          this.subCycleInstructions.push(() => {
-            this.registers.x = this.registers.ac;
+        case "DEX":
+          this.queueStep(() => {
+            this.registers.x--;
             this.updateFlags(this.registers.x);
           });
           break;
-        case 232:
-          this.subCycleInstructions.push(() => {
+        case "INX":
+          this.queueStep(() => {
             this.registers.x++;
             this.updateFlags(this.registers.x);
           });
           break;
+        case "JMP":
+          (() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              console.log(`JMP ${this.registers.ac} to ${_CPU.dec2hexByte(operand.value)}`);
+              this.registers.pc = operand.value;
+            });
+          })();
+          break;
+        case "LDA":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            console.log(`LDA  ${_CPU.dec2hexByte(operand.value)}`);
+            this.registers.ac = operand.value;
+            this.updateFlags(this.registers.ac);
+          });
+          break;
+        case "LDX":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            console.log(`LDX  ${_CPU.dec2hexByte(operand.value)}`);
+            this.registers.x = operand.value;
+            this.updateFlags(this.registers.x);
+          });
+          break;
+        case "STA":
+          (() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              console.log(`STA ${_CPU.dec2hexByte(this.registers.ac)} to ${_CPU.dec2hexByte(operand.value)}`);
+              this.memory.writeByte(operand.value, this.registers.ac);
+            });
+          })();
+          break;
+        case "STX":
+          (() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              console.log(`STX ${_CPU.dec2hexByte(this.registers.x)} to ${_CPU.dec2hexWord(operand.value)}`);
+              this.memory.writeByte(operand.value, this.registers.x);
+            });
+          })();
+          break;
+        case "TAX":
+          this.queueStep(() => {
+            this.registers.x = this.registers.ac;
+            this.updateFlags(this.registers.x);
+          });
+          break;
         default:
-          console.log(`Unknown opcode '${_CPU.dec2hexByte(opcode)}' at PC: ${this.registers.pc} `);
+          console.log(`Unknown instruction ${instruction}`);
       }
+    }
+    /**
+     * Gets the operand depending on the addressing mode. 
+     * The operand is modified in place
+     * @param {*} mode 
+     * @param {*} operand 
+     */
+    getOperand(mode, operand) {
+      switch (mode) {
+        case "#":
+        case "REL":
+          operand.value = this.popByte();
+          break;
+        case "ABS":
+          (() => {
+            let lowByte, highByte;
+            this.queueStep(() => {
+              lowByte = this.popByte();
+            });
+            this.queueStep(() => {
+              highByte = this.popByte();
+              const addr = lowByte + (highByte << 8);
+              operand.value = addr;
+            });
+          })();
+          break;
+        default:
+          console.log(`Unknown addressing mode '${mode}'`);
+          break;
+      }
+    }
+    /**
+     * Add a step to the sub instruction queue
+     * @param {function} fn 
+     */
+    queueStep(fn) {
+      this.subCycleInstructions.push(fn);
     }
     /**
      * Reads a byte and increments PC
@@ -1215,7 +1383,7 @@ ${memDisplay}
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(0, "69 01 8D 0A 00 0A 4C 00 00");
+    cpu.memory.hexLoad(0, "a2 08 ca 8e 00 02 e0 03 d0 f8 8e 01 02 00");
     cpu.boot();
   });
 })();
