@@ -31,7 +31,7 @@ let scripts = await esbuild.context({
     minify: minify,
     sourcemap: true,
     sourcesContent: true,
-    outfile: 'htdocs/js/scripts-dist.js',
+    outfile: 'htdocs/js/scripts-dist.js',     
   });
   
 

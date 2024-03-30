@@ -8,7 +8,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": [],
+			"problemMatcher": "$esbuild-watch",
 			"label": "npm: watch",
 			"detail": "node esbuild-watch.mjs"
 		}

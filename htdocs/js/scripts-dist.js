@@ -1283,6 +1283,19 @@
             });
           })();
           break;
+        case "ABSY":
+          (() => {
+            let lowByte, highByte;
+            this.queueStep(() => {
+              lowByte = this.popByte();
+            });
+            this.queueStep(() => {
+              highByte = this.popByte();
+              const addr = lowByte + (highByte << 8) + this.registers.y;
+              operand.value = addr;
+            });
+          })();
+          break;
         case "IND":
           (() => {
             let lowByteSrc, highByteSrc, srcAddr;

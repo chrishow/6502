@@ -392,7 +392,7 @@ export class CPU {
                 operand.value = this.popByte();
                 break;
 
-            case 'ABS': // Absolute two byte address
+                case 'ABS': // Absolute two byte address
                 (() => {
                     let lowByte, highByte;
 
@@ -404,6 +404,28 @@ export class CPU {
                     this.queueStep(() => {
                         highByte = this.popByte();
                         const addr = lowByte + (highByte << 8);
+
+                        // console.log(`Got highByte: ${highByte}`);
+
+                        // console.log(`Addr: ${CPU.dec2hexWord(addr)}`);
+
+                        operand.value = addr;
+                    });
+                })();
+                break;
+
+                case 'ABSY': // Absolute two byte address
+                (() => {
+                    let lowByte, highByte;
+
+                    this.queueStep(() => {
+                        lowByte = this.popByte();
+                        // console.log(`Got lowByte: ${lowByte}`);
+                    });
+
+                    this.queueStep(() => {
+                        highByte = this.popByte();
+                        const addr = lowByte + (highByte << 8) + this.registers.y;
 
                         // console.log(`Got highByte: ${highByte}`);
 
