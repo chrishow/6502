@@ -13,7 +13,7 @@ function assert(test) {
 
 function dumpCpu() {
     console.log(`PC : ${dec2hexWord(cpu.registers.pc)}`);
-    console.log(`ac : ${dec2hexWord(cpu.registers.ac)}`);
+    console.log(`ac : ${dec2hexWord(cpu.registers.a)}`);
     console.log(`x : ${dec2hexWord(cpu.registers.x)}`);
     console.log(`y : ${dec2hexWord(cpu.registers.y)}`);
     // console.log(`acc : ${dec2hexWord(cpu.registers.acc)}`);
@@ -27,7 +27,7 @@ function dec2hexWord(dec) {
 cpu.memory.hexLoad(0x00, '69 69 69 01');
 cpu.steps(6);
 
-assert(cpu.registers.ac == 0x6A);
+assert(cpu.registers.a == 0x6A);
 assert(cpu.registers.sr.n == 0);
 assert(cpu.registers.sr.z == 0);
 assert(cpu.registers.sr.c == 0);
@@ -35,7 +35,7 @@ assert(cpu.registers.sr.c == 0);
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, '69 69 69 69');
 cpu.steps(4);
-assert(cpu.registers.ac == 0xD2);
+assert(cpu.registers.a == 0xD2);
 assert(cpu.registers.sr.n == 1);
 assert(cpu.registers.sr.z == 0);
 assert(cpu.registers.sr.c == 0);
@@ -43,7 +43,7 @@ assert(cpu.registers.sr.c == 0);
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, '69 69 69 97');
 cpu.steps(4);
-assert(cpu.registers.ac == 0x00);
+assert(cpu.registers.a == 0x00);
 assert(cpu.registers.sr.n == 0);
 assert(cpu.registers.sr.z == 1);
 assert(cpu.registers.sr.c == 1);
@@ -59,7 +59,7 @@ assert(cpu.registers.sr.c == 0);
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, 'A9 69'); // LDA immediate
 cpu.steps(2);
-assert(cpu.registers.ac == 0x69);
+assert(cpu.registers.a == 0x69);
 assert(cpu.registers.sr.n == 0);
 assert(cpu.registers.sr.z == 0);
 assert(cpu.registers.sr.c == 0);
@@ -67,7 +67,7 @@ assert(cpu.registers.sr.c == 0);
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, 'A9 FA'); // LDA immediate
 cpu.steps(4);
-assert(cpu.registers.ac == 0xFA);
+assert(cpu.registers.a == 0xFA);
 assert(cpu.registers.sr.n == 1);
 assert(cpu.registers.sr.z == 0);
 assert(cpu.registers.sr.c == 0);
@@ -75,7 +75,7 @@ assert(cpu.registers.sr.c == 0);
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, 'A9 69 A9 00'); // LDA immediate
 cpu.steps(4);
-assert(cpu.registers.ac == 0x00);
+assert(cpu.registers.a == 0x00);
 assert(cpu.registers.sr.n == 0);
 assert(cpu.registers.sr.z == 1);
 assert(cpu.registers.sr.c == 0);
@@ -92,7 +92,7 @@ console.log('Indirect: ($c000)');
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, 'a9 01 85 f0 a9 cc 85 f1 6c f0 00');
 cpu.steps(17);
-assert(cpu.registers.ac == 0xCC);
+assert(cpu.registers.a == 0xCC);
 assert(cpu.registers.x == 0x00);
 assert(cpu.registers.y == 0x00);
 assert(cpu.registers.pc == 0xCC02);
@@ -106,7 +106,7 @@ cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'a2 01 a9 05 85 01 a9 07 85 02 a0 0a 8c 05 07 a1 00');
 cpu.registers.pc = 0x0600;
 cpu.steps(25);
-assert(cpu.registers.ac == 0x0A);
+assert(cpu.registers.a == 0x0A);
 assert(cpu.registers.x == 0x01);
 assert(cpu.registers.y == 0x0A);
 
@@ -115,7 +115,7 @@ cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'a0 01 a9 03 85 01 a9 07 85 02 a2 0a 8e 04 07 b1 01');
 cpu.registers.pc = 0x0600;
 cpu.steps(25);
-assert(cpu.registers.ac == 0x0A);
+assert(cpu.registers.a == 0x0A);
 assert(cpu.registers.x == 0x0A);
 assert(cpu.registers.y == 0x01);
 
@@ -123,7 +123,7 @@ assert(cpu.registers.y == 0x01);
 // cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
 // cpu.registers.pc = 0x0600;
 // cpu.steps(25);
-// assert(cpu.registers.ac == 0x0A);
+// assert(cpu.registers.a == 0x0A);
 // assert(cpu.registers.x == 0x0A);
 // assert(cpu.registers.y == 0x01);
 

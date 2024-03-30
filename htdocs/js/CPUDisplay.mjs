@@ -164,7 +164,7 @@ export class CPUDisplay extends LitElement {
         </tr>
         <tr>
             <th>AC</th>
-            <td>0x${CPUDisplay.formatByte(this.registers.ac)}</td>
+            <td>0x${CPUDisplay.formatByte(this.registers.a)}</td>
         </tr>
         <tr>
             <th>X</th>

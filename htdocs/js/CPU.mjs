@@ -64,7 +64,7 @@ export class CPU {
     initRegisters() {
         this.registers = {
             pc: 0,
-            ac: 0,
+            a: 0,
             x: 0,
             y: 0,
             sp: 0xFF,
@@ -126,16 +126,16 @@ export class CPU {
                             this.getOperand(mode, operand);
                         }
 
-                        this.registers.ac += operand.value;
+                        this.registers.a += operand.value;
     
-                        if(this.registers.ac > 0xFF) {
-                            this.registers.ac -= 0x100;
+                        if(this.registers.a > 0xFF) {
+                            this.registers.a -= 0x100;
                             this.registers.sr.c = 1;
                         } else {
                             this.registers.sr.c = 0;
                         }
                 
-                        this.updateFlags(this.registers.ac);
+                        this.updateFlags(this.registers.a);
                     });
 
                 })();
@@ -220,7 +220,7 @@ export class CPU {
                             this.getOperand(mode, operand);
                         }
 
-                        let result = this.registers.ac - operand.value;
+                        let result = this.registers.a - operand.value;
                         
                         if(result < 0) {
                             this.registers.sr.c = 0;
@@ -266,7 +266,7 @@ export class CPU {
 
             case 'LDA': // Load into accumulator
                 (() => {
-                    let operand = {}; 
+                    let operand = {};
 
                     // this.queueStep(() => {
                     // });
@@ -275,8 +275,8 @@ export class CPU {
                         this.queueStep(() => {
                             this.getOperand(mode, operand);
                             console.log(`LDA immediate  ${CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
-                            this.registers.ac = operand.value;
-                            this.updateFlags(this.registers.ac);
+                            this.registers.a = operand.value;
+                            this.updateFlags(this.registers.a);
                         });
 
                     } else {
@@ -284,8 +284,8 @@ export class CPU {
 
                         this.queueStep(() => {
                             console.log(`LDA ${mode} ${CPU.dec2hexByte(operand.value)}`);
-                            this.registers.ac = operand.value;
-                            this.updateFlags(this.registers.ac);
+                            this.registers.a = operand.value;
+                            this.updateFlags(this.registers.a);
                         });    
                     }
                 })();
@@ -323,8 +323,8 @@ export class CPU {
 
                     this.queueStep(() => {
                         // Store the byte
-                        console.log(`STA ${CPU.dec2hexByte(this.registers.ac)} to ${CPU.dec2hexByte(operand.value)}`);
-                        this.memory.writeByte(operand.value, this.registers.ac);
+                        console.log(`STA ${CPU.dec2hexByte(this.registers.a)} to ${CPU.dec2hexByte(operand.value)}`);
+                        this.memory.writeByte(operand.value, this.registers.a);
                     });
 
                 })()
@@ -363,7 +363,7 @@ export class CPU {
 
             case 'TAX': // Transfer ac to x
                 this.queueStep(() => {
-                    this.registers.x = this.registers.ac;
+                    this.registers.x = this.registers.a;
 
                     this.updateFlags(this.registers.x);
                 });

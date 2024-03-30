@@ -781,7 +781,7 @@
         </tr>
         <tr>
             <th>AC</th>
-            <td>0x${_CPUDisplay.formatByte(this.registers.ac)}</td>
+            <td>0x${_CPUDisplay.formatByte(this.registers.a)}</td>
         </tr>
         <tr>
             <th>X</th>
@@ -1027,7 +1027,7 @@
     initRegisters() {
       this.registers = {
         pc: 0,
-        ac: 0,
+        a: 0,
         x: 0,
         y: 0,
         sp: 255,
@@ -1079,14 +1079,14 @@
               if (mode === "#") {
                 this.getOperand(mode, operand);
               }
-              this.registers.ac += operand.value;
-              if (this.registers.ac > 255) {
-                this.registers.ac -= 256;
+              this.registers.a += operand.value;
+              if (this.registers.a > 255) {
+                this.registers.a -= 256;
                 this.registers.sr.c = 1;
               } else {
                 this.registers.sr.c = 0;
               }
-              this.updateFlags(this.registers.ac);
+              this.updateFlags(this.registers.a);
             });
           })();
           break;
@@ -1146,7 +1146,7 @@
               if (mode === "#") {
                 this.getOperand(mode, operand);
               }
-              let result = this.registers.ac - operand.value;
+              let result = this.registers.a - operand.value;
               if (result < 0) {
                 this.registers.sr.c = 0;
               } else {
@@ -1185,15 +1185,15 @@
               this.queueStep(() => {
                 this.getOperand(mode, operand);
                 console.log(`LDA immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
-                this.registers.ac = operand.value;
-                this.updateFlags(this.registers.ac);
+                this.registers.a = operand.value;
+                this.updateFlags(this.registers.a);
               });
             } else {
               this.getOperand(mode, operand);
               this.queueStep(() => {
                 console.log(`LDA ${mode} ${_CPU.dec2hexByte(operand.value)}`);
-                this.registers.ac = operand.value;
-                this.updateFlags(this.registers.ac);
+                this.registers.a = operand.value;
+                this.updateFlags(this.registers.a);
               });
             }
           })();
@@ -1221,8 +1221,8 @@
             let operand = {};
             this.getOperand(mode, operand);
             this.queueStep(() => {
-              console.log(`STA ${_CPU.dec2hexByte(this.registers.ac)} to ${_CPU.dec2hexByte(operand.value)}`);
-              this.memory.writeByte(operand.value, this.registers.ac);
+              console.log(`STA ${_CPU.dec2hexByte(this.registers.a)} to ${_CPU.dec2hexByte(operand.value)}`);
+              this.memory.writeByte(operand.value, this.registers.a);
             });
           })();
           break;
@@ -1248,7 +1248,7 @@
           break;
         case "TAX":
           this.queueStep(() => {
-            this.registers.x = this.registers.ac;
+            this.registers.x = this.registers.a;
             this.updateFlags(this.registers.x);
           });
           break;
