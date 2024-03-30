@@ -24,6 +24,9 @@ function dumpCpu() {
     console.log(`a : ${dec2hexByte(cpu.registers.a)}`);
     console.log(`x : ${dec2hexByte(cpu.registers.x)}`);
     console.log(`y : ${dec2hexByte(cpu.registers.y)}`);
+    console.log(`sr.n : ${dec2hexByte(cpu.registers.sr.n)}`);
+    console.log(`sr.z : ${dec2hexByte(cpu.registers.sr.z)}`);
+    console.log(`sr.c : ${dec2hexByte(cpu.registers.sr.c)}`);
     // console.log(`acc : ${dec2hexWord(cpu.registers.acc)}`);
 }    
 
@@ -185,6 +188,29 @@ cpu.registers.pc = 0x0600;
 cpu.steps(4);
 assertEquals(cpu.registers.a, 0x69);
 
+// Test x overflow on increment
+cpu = new CPU;
+cpu.registers.x = 0xFF;
+cpu.memory.hexLoad(0x0000, 'E8');
+cpu.steps(2);
+assertEquals(cpu.registers.x, 0x00);
+assertEquals(cpu.registers.sr.c, 0);
+assertEquals(cpu.registers.sr.z, 1);
+
+
+// Test x underflow on increment
+cpu = new CPU;
+cpu.registers.x = 0x00;
+cpu.memory.hexLoad(0x0000, 'CA');
+cpu.steps(2);
+assertEquals(cpu.registers.x, 0xFF);
+
+
+
+// cpu = new CPU;
+// cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
+// cpu.registers.pc = 0x0600;
+// cpu.steps(100);
 
 
 

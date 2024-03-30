@@ -1160,14 +1160,20 @@
           break;
         case "DEX":
           this.queueStep(() => {
-            this.registers.x--;
+            this.registers.x = this.registers.x - 1 & 255;
             this.updateFlags(this.registers.x);
           });
           break;
         case "INX":
           this.queueStep(() => {
-            this.registers.x++;
+            this.registers.x = this.registers.x + 1 & 255;
             this.updateFlags(this.registers.x);
+          });
+          break;
+        case "INY":
+          this.queueStep(() => {
+            this.registers.y = this.registers.y + 1 & 255;
+            this.updateFlags(this.registers.y);
           });
           break;
         case "JMP":
@@ -1189,6 +1195,13 @@
         case "LDY":
           this.loadRegister("y", mode);
           break;
+        case "PHA":
+          this.queueStep(() => {
+          });
+          this.queueStep(() => {
+            this.pushToStack(this.registers.a);
+          });
+          break;
         case "STA":
           this.storeRegister("a", mode);
           break;
@@ -1204,8 +1217,43 @@
             this.updateFlags(this.registers.x);
           });
           break;
+        case "TAY":
+          this.queueStep(() => {
+            this.registers.y = this.registers.a;
+            this.updateFlags(this.registers.y);
+          });
+          break;
+        case "TSX":
+          this.queueStep(() => {
+            this.registers.x = this.registers.sp;
+            this.updateFlags(this.registers.x);
+          });
+          break;
+        case "TXA":
+          this.queueStep(() => {
+            this.registers.a = this.registers.x;
+            this.updateFlags(this.registers.a);
+          });
+          break;
+        case "TXS":
+          this.queueStep(() => {
+            this.registers.sp = this.registers.x;
+          });
+          break;
         default:
           console.log(`Unknown instruction ${instruction}`);
+      }
+    }
+    /**
+     * Push a value onto the stack, and adjust the stack pointer
+     * @param {byte} value 
+     */
+    pushToStack(value) {
+      this.memory.writeByte(this.registers.sp + 256, value);
+      this.registers.sp--;
+      if (this.registers.sp < 0) {
+        console.log("Stack has overflowed! Wrapping...");
+        this.registers.sp = this.registers.sp & 255;
       }
     }
     /**
@@ -1257,7 +1305,6 @@
           operand.value = this.popByte();
           break;
         case "REL":
-          alert("Mode REL not implemented");
           operand.value = this.popByte();
           break;
         case "ABS":
@@ -1518,7 +1565,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "a0 01 a9 03 85 01 a9 07 85 02 a2 0a 8e 04 07 b1 01");
+    cpu.memory.hexLoad(1536, "a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

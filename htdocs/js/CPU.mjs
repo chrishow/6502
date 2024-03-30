@@ -239,15 +239,22 @@ export class CPU {
 
             case 'DEX': // Decrement X
                 this.queueStep(() => {
-                    this.registers.x--;
+                    this.registers.x = (this.registers.x - 1) & 0xFF;
                     this.updateFlags(this.registers.x);
                 });
                 break;
 
             case 'INX': // Increment X
                 this.queueStep(() => {
-                    this.registers.x++;
+                    this.registers.x = (this.registers.x + 1) & 0xFF;
                     this.updateFlags(this.registers.x);
+                });
+                break;
+
+            case 'INY': // Increment Y
+                this.queueStep(() => {
+                    this.registers.y = (this.registers.y + 1) & 0xFF;
+                    this.updateFlags(this.registers.y);
                 });
                 break;
 
@@ -278,6 +285,15 @@ export class CPU {
                 this.loadRegister('y', mode);
                 break;
 
+            case 'PHA': // Push a onto stack
+                // This takes three cycles total, so need to use two here
+                this.queueStep(() => {
+                });
+                this.queueStep(() => {
+                    this.pushToStack(this.registers.a);
+                });
+                break;
+
             case 'STA': // Store Accumulator in Memory
                 this.storeRegister('a', mode);
                 break;
@@ -299,10 +315,58 @@ export class CPU {
                 });
                 break;
 
-            default:
+            case 'TAY': // Transfer ac to y
+                this.queueStep(() => {
+                    this.registers.y = this.registers.a;
+
+                    this.updateFlags(this.registers.y);
+                });
+                break;
+
+            case 'TSX': // Transfer stack pointer to x
+                this.queueStep(() => {
+                    this.registers.x = this.registers.sp;
+
+                    this.updateFlags(this.registers.x);
+                });
+                break;
+
+            case 'TXA': // Transfer x to a
+                this.queueStep(() => {
+                    this.registers.a = this.registers.x;
+
+                    this.updateFlags(this.registers.a);
+                });
+                break;
+
+            case 'TXS': // Transfer x to stack pointer
+                this.queueStep(() => {
+                    this.registers.sp = this.registers.x;
+
+                });
+                break;
+
+                default:
                 console.log(`Unknown instruction ${instruction}`);                
         }
 
+    }
+
+    /**
+     * Push a value onto the stack, and adjust the stack pointer
+     * @param {byte} value 
+     */
+    pushToStack(value) {
+        // Store value to stack
+        this.memory.writeByte(this.registers.sp + 0x100, value);
+
+        // Decrement stack pointer
+        this.registers.sp--;
+
+        if (this.registers.sp < 0) { // Stack has overflowed!
+            console.log('Stack has overflowed! Wrapping...')
+            this.registers.sp = this.registers.sp & 0xff; // Wrap
+        }
     }
 
     /**
@@ -366,8 +430,7 @@ export class CPU {
                 operand.value = this.popByte();
                 break;
 
-            case 'REL': // Relative TODO FIXME
-                alert('Mode REL not implemented');
+            case 'REL': // Relative
                 operand.value = this.popByte();
                 break;
 
