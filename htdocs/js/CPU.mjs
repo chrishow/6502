@@ -265,99 +265,27 @@ export class CPU {
                 break;
 
             case 'LDA': // Load into accumulator
-                (() => {
-                    let operand = {};
-
-                    // this.queueStep(() => {
-                    // });
-
-                    if(mode === '#') { // Must do all this in one cycle
-                        this.queueStep(() => {
-                            this.getOperand(mode, operand);
-                            console.log(`LDA immediate  ${CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
-                            this.registers.a = operand.value;
-                            this.updateFlags(this.registers.a);
-                        });
-
-                    } else {
-                        this.getOperand(mode, operand);
-
-                        this.queueStep(() => {
-                            console.log(`LDA ${mode} ${CPU.dec2hexByte(operand.value)}`);
-                            this.registers.a = operand.value;
-                            this.updateFlags(this.registers.a);
-                        });    
-                    }
-                })();
-            break;
+                this.loadRegister('a', mode);
+                break;
 
             case 'LDX': // Load into x
-                this.queueStep(() => {
-                    let operand = {}; 
-
-                    this.getOperand(mode, operand);
-
-                    console.log(`LDX  ${CPU.dec2hexByte(operand.value)}`);
-                    this.registers.x = operand.value;
-                    this.updateFlags(this.registers.x);
-                });
-            break;
+                this.loadRegister('x', mode);
+                break;
 
             case 'LDY': // Load into y
-                this.queueStep(() => {
-                    let operand = {}; 
-
-                    this.getOperand(mode, operand);
-
-                    console.log(`LDY  ${CPU.dec2hexByte(operand.value)}`);
-                    this.registers.y = operand.value;
-                    this.updateFlags(this.registers.y);
-                });
-            break;
+                this.loadRegister('y', mode);
+                break;
 
             case 'STA': // Store Accumulator in Memory
-                (() => {
-                    let operand = {}; // Memory address to store ac to 
-
-                    this.getOperand(mode, operand);
-
-                    this.queueStep(() => {
-                        // Store the byte
-                        console.log(`STA ${CPU.dec2hexByte(this.registers.a)} to ${CPU.dec2hexByte(operand.value)}`);
-                        this.memory.writeByte(operand.value, this.registers.a);
-                    });
-
-                })()
+                this.storeRegister('a', mode);
                 break;
 
-                case 'STX': // Store x in Memory
-                (() => {
-                    let operand = {}; // Memory address to store ac to 
-
-                    this.getOperand(mode, operand);
-
-                    this.queueStep(() => {
-                        // Store the byte
-                        console.log(`STX ${CPU.dec2hexByte(this.registers.x)} to ${CPU.dec2hexWord(operand.value)}`);
-                        this.memory.writeByte(operand.value, this.registers.x);        
-                    });
-
-                })()
+            case 'STX': // Store x in Memory
+                this.storeRegister('x', mode);
                 break;
 
-                case 'STY': // Store y in Memory
-                (() => {
-                    let operand = {}; // Memory address to store ac to 
-
-                    this.getOperand(mode, operand);
-
-                    this.queueStep(() => {
-                        // Store the byte
-                        console.log(`STY ${CPU.dec2hexByte(this.registers.y)} to ${CPU.dec2hexWord(operand.value)}`);
-                        this.memory.writeByte(operand.value, this.registers.y);
-                    });
-
-                })()
+            case 'STY': // Store y in Memory
+                this.storeRegister('y', mode);
                 break;
 
 
@@ -374,6 +302,55 @@ export class CPU {
         }
 
     }
+
+    /**
+     * Load a register
+     * 
+     * @param {char} reg 
+     */
+    loadRegister(reg, mode) {
+        let operand = {};
+        
+
+        if(mode === '#') { // Must do all this in one cycle
+            this.queueStep(() => {
+                this.getOperand(mode, operand);
+                console.log(`LD${reg.toUpperCase()} immediate  ${CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
+                this.registers[reg] = operand.value;
+                this.updateFlags(this.registers[reg]);
+            });
+
+        } else {
+            this.getOperand(mode, operand);
+
+            this.queueStep(() => {
+                console.log(`LD${reg.toUpperCase()} ${mode} ${CPU.dec2hexByte(operand.value)}`);
+                this.registers[reg] = operand.value;
+                this.updateFlags(this.registers[reg]);
+            });    
+        }
+    }
+
+    /**
+     * Store a register in a memory address
+     * 
+     * @param {char} reg
+     * @param {String} mode 
+     */
+    storeRegister(reg, mode) {
+        let operand = {}; // Memory address to store ac to 
+
+        this.getOperand(mode, operand);
+
+        this.queueStep(() => {
+            // Store the byte
+            console.log(`ST${reg.toUpperCase()} ${CPU.dec2hexByte(this.registers[reg])} to ${CPU.dec2hexByte(operand.value)}`);
+            this.memory.writeByte(operand.value, this.registers[reg]);
+        });
+
+    }
+
+
 
     /**
      * Gets the operand depending on the addressing mode. 

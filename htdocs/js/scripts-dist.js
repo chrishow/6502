@@ -1179,72 +1179,22 @@
           })();
           break;
         case "LDA":
-          (() => {
-            let operand = {};
-            if (mode === "#") {
-              this.queueStep(() => {
-                this.getOperand(mode, operand);
-                console.log(`LDA immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
-                this.registers.a = operand.value;
-                this.updateFlags(this.registers.a);
-              });
-            } else {
-              this.getOperand(mode, operand);
-              this.queueStep(() => {
-                console.log(`LDA ${mode} ${_CPU.dec2hexByte(operand.value)}`);
-                this.registers.a = operand.value;
-                this.updateFlags(this.registers.a);
-              });
-            }
-          })();
+          this.loadRegister("a", mode);
           break;
         case "LDX":
-          this.queueStep(() => {
-            let operand = {};
-            this.getOperand(mode, operand);
-            console.log(`LDX  ${_CPU.dec2hexByte(operand.value)}`);
-            this.registers.x = operand.value;
-            this.updateFlags(this.registers.x);
-          });
+          this.loadRegister("x", mode);
           break;
         case "LDY":
-          this.queueStep(() => {
-            let operand = {};
-            this.getOperand(mode, operand);
-            console.log(`LDY  ${_CPU.dec2hexByte(operand.value)}`);
-            this.registers.y = operand.value;
-            this.updateFlags(this.registers.y);
-          });
+          this.loadRegister("y", mode);
           break;
         case "STA":
-          (() => {
-            let operand = {};
-            this.getOperand(mode, operand);
-            this.queueStep(() => {
-              console.log(`STA ${_CPU.dec2hexByte(this.registers.a)} to ${_CPU.dec2hexByte(operand.value)}`);
-              this.memory.writeByte(operand.value, this.registers.a);
-            });
-          })();
+          this.storeRegister("a", mode);
           break;
         case "STX":
-          (() => {
-            let operand = {};
-            this.getOperand(mode, operand);
-            this.queueStep(() => {
-              console.log(`STX ${_CPU.dec2hexByte(this.registers.x)} to ${_CPU.dec2hexWord(operand.value)}`);
-              this.memory.writeByte(operand.value, this.registers.x);
-            });
-          })();
+          this.storeRegister("x", mode);
           break;
         case "STY":
-          (() => {
-            let operand = {};
-            this.getOperand(mode, operand);
-            this.queueStep(() => {
-              console.log(`STY ${_CPU.dec2hexByte(this.registers.y)} to ${_CPU.dec2hexWord(operand.value)}`);
-              this.memory.writeByte(operand.value, this.registers.y);
-            });
-          })();
+          this.storeRegister("y", mode);
           break;
         case "TAX":
           this.queueStep(() => {
@@ -1255,6 +1205,43 @@
         default:
           console.log(`Unknown instruction ${instruction}`);
       }
+    }
+    /**
+     * Load a register
+     * 
+     * @param {char} reg 
+     */
+    loadRegister(reg, mode) {
+      let operand = {};
+      if (mode === "#") {
+        this.queueStep(() => {
+          this.getOperand(mode, operand);
+          console.log(`LD${reg.toUpperCase()} immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
+          this.registers[reg] = operand.value;
+          this.updateFlags(this.registers[reg]);
+        });
+      } else {
+        this.getOperand(mode, operand);
+        this.queueStep(() => {
+          console.log(`LD${reg.toUpperCase()} ${mode} ${_CPU.dec2hexByte(operand.value)}`);
+          this.registers[reg] = operand.value;
+          this.updateFlags(this.registers[reg]);
+        });
+      }
+    }
+    /**
+     * Store a register in a memory address
+     * 
+     * @param {char} reg
+     * @param {String} mode 
+     */
+    storeRegister(reg, mode) {
+      let operand = {};
+      this.getOperand(mode, operand);
+      this.queueStep(() => {
+        console.log(`ST${reg.toUpperCase()} ${_CPU.dec2hexByte(this.registers[reg])} to ${_CPU.dec2hexByte(operand.value)}`);
+        this.memory.writeByte(operand.value, this.registers[reg]);
+      });
     }
     /**
      * Gets the operand depending on the addressing mode. 
@@ -1520,7 +1507,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7");
+    cpu.memory.hexLoad(1536, "a0 01 a9 03 85 01 a9 07 85 02 a2 0a 8e 04 07 b1 01");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();
