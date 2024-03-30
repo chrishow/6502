@@ -124,9 +124,11 @@ export class CPU {
                     this.queueStep(() => {
                         if(mode === '#') {
                             this.getOperand(mode, operand);
+                            this.registers.a += operand.value;
+                        } else {
+                            this.registers.a += this.memory.readByte(operand.value);
                         }
 
-                        this.registers.a += operand.value;
     
                         if(this.registers.a > 0xFF) {
                             this.registers.a -= 0x100;
@@ -315,7 +317,7 @@ export class CPU {
         if(mode === '#') { // Must do all this in one cycle
             this.queueStep(() => {
                 this.getOperand(mode, operand);
-                console.log(`LD${reg.toUpperCase()} immediate  ${CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
+                console.log(`LD${reg.toUpperCase()} immediate  ${CPU.dec2hexByte(operand.value)}, PC ${CPU.dec2hexWord(this.registers.pc)}`);
                 this.registers[reg] = operand.value;
                 this.updateFlags(this.registers[reg]);
             });
@@ -324,8 +326,8 @@ export class CPU {
             this.getOperand(mode, operand);
 
             this.queueStep(() => {
-                console.log(`LD${reg.toUpperCase()} ${mode} ${CPU.dec2hexByte(operand.value)}`);
-                this.registers[reg] = operand.value;
+                console.log(`LD${reg.toUpperCase()} ${mode} from 0x${CPU.dec2hexByte(operand.value)}`);
+                this.registers[reg] = this.memory.readByte(operand.value);
                 this.updateFlags(this.registers[reg]);
             });    
         }
@@ -344,7 +346,7 @@ export class CPU {
 
         this.queueStep(() => {
             // Store the byte
-            console.log(`ST${reg.toUpperCase()} ${CPU.dec2hexByte(this.registers[reg])} to ${CPU.dec2hexByte(operand.value)}`);
+            console.log(`ST${reg.toUpperCase()} ${CPU.dec2hexByte(this.registers[reg])} to ${CPU.dec2hexWord(operand.value)}`);
             this.memory.writeByte(operand.value, this.registers[reg]);
         });
 
@@ -361,15 +363,15 @@ export class CPU {
     getOperand(mode, operand) {
         switch(mode) {
             case '#': // Direct
-            // Fall through                
                 operand.value = this.popByte();
                 break;
 
             case 'REL': // Relative TODO FIXME
+                alert('Mode REL not implemented');
                 operand.value = this.popByte();
                 break;
 
-                case 'ABS': // Absolute two byte address
+            case 'ABS': // Absolute two byte address
                 (() => {
                     let lowByte, highByte;
 
@@ -391,7 +393,7 @@ export class CPU {
                 })();
                 break;
 
-                case 'ABSY': // Absolute two byte address
+            case 'ABSY': // Absolute two byte address + y
                 (() => {
                     let lowByte, highByte;
 
@@ -413,7 +415,7 @@ export class CPU {
                 })();
                 break;
 
-            case 'IND': // Indirect two byte address
+            case 'IND': // Indirect two byte address, only supported by JMP
                 (() => {
                     let lowByteSrc, highByteSrc, srcAddr;
                     let lowByte, highByte;
@@ -463,14 +465,11 @@ export class CPU {
                     this.queueStep(() => {
                         srcHighByte = this.memory.readByte((zeroAddrSrc+1) & 0xFF);
                         // console.log(`srcHighByte: ${CPU.dec2hexByte(srcHighByte)}`);
-                    });
-
-                    this.queueStep(() => {
+                        
                         srcAddr = ((srcLowByte + (srcHighByte << 8)) + this.registers.y);
                         // console.log(`srcAddr: ${CPU.dec2hexWord(srcAddr)}`);
 
-                        operand.value = this.memory.readByte(srcAddr);
-
+                        operand.value = srcAddr;
                     });
                     
                 })();
@@ -514,13 +513,8 @@ export class CPU {
                     this.queueStep(() => {
                         highByte = this.memory.readByte(srcAddr + 1);
                         // console.log(`highByte: ${CPU.dec2hexByte(highByte)}`);
-
-                    });
-
-                    this.queueStep(() => {
                         const finalAddress = lowByte + (highByte << 8);
-                        operand.value = this.memory.readByte(finalAddress);
-                        // console.log(`operand.value: ${CPU.dec2hexByte(operand.value)}`);
+                        operand.value = finalAddress;
                     });
                     
                 })();

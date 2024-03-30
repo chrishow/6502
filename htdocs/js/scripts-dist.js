@@ -1078,8 +1078,10 @@
             this.queueStep(() => {
               if (mode === "#") {
                 this.getOperand(mode, operand);
+                this.registers.a += operand.value;
+              } else {
+                this.registers.a += this.memory.readByte(operand.value);
               }
-              this.registers.a += operand.value;
               if (this.registers.a > 255) {
                 this.registers.a -= 256;
                 this.registers.sr.c = 1;
@@ -1216,15 +1218,15 @@
       if (mode === "#") {
         this.queueStep(() => {
           this.getOperand(mode, operand);
-          console.log(`LD${reg.toUpperCase()} immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${this.registers.pc}`);
+          console.log(`LD${reg.toUpperCase()} immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${_CPU.dec2hexWord(this.registers.pc)}`);
           this.registers[reg] = operand.value;
           this.updateFlags(this.registers[reg]);
         });
       } else {
         this.getOperand(mode, operand);
         this.queueStep(() => {
-          console.log(`LD${reg.toUpperCase()} ${mode} ${_CPU.dec2hexByte(operand.value)}`);
-          this.registers[reg] = operand.value;
+          console.log(`LD${reg.toUpperCase()} ${mode} from 0x${_CPU.dec2hexByte(operand.value)}`);
+          this.registers[reg] = this.memory.readByte(operand.value);
           this.updateFlags(this.registers[reg]);
         });
       }
@@ -1239,7 +1241,7 @@
       let operand = {};
       this.getOperand(mode, operand);
       this.queueStep(() => {
-        console.log(`ST${reg.toUpperCase()} ${_CPU.dec2hexByte(this.registers[reg])} to ${_CPU.dec2hexByte(operand.value)}`);
+        console.log(`ST${reg.toUpperCase()} ${_CPU.dec2hexByte(this.registers[reg])} to ${_CPU.dec2hexWord(operand.value)}`);
         this.memory.writeByte(operand.value, this.registers[reg]);
       });
     }
@@ -1255,6 +1257,7 @@
           operand.value = this.popByte();
           break;
         case "REL":
+          alert("Mode REL not implemented");
           operand.value = this.popByte();
           break;
         case "ABS":
@@ -1315,10 +1318,8 @@
             });
             this.queueStep(() => {
               srcHighByte = this.memory.readByte(zeroAddrSrc + 1 & 255);
-            });
-            this.queueStep(() => {
               srcAddr = srcLowByte + (srcHighByte << 8) + this.registers.y;
-              operand.value = this.memory.readByte(srcAddr);
+              operand.value = srcAddr;
             });
           })();
           break;
@@ -1347,10 +1348,8 @@
             });
             this.queueStep(() => {
               highByte = this.memory.readByte(srcAddr + 1);
-            });
-            this.queueStep(() => {
               const finalAddress = lowByte + (highByte << 8);
-              operand.value = this.memory.readByte(finalAddress);
+              operand.value = finalAddress;
             });
           })();
           break;

@@ -11,16 +11,28 @@ function assert(test) {
     }
 }
 
+function assertEquals(test, result) {
+    if(test !== result) {
+        console.log(`test '${dec2hexWord(test)}' !== result: '${dec2hexWord(result)}'`);
+        console.trace();
+        dumpCpu();
+    }
+}
+
 function dumpCpu() {
     console.log(`PC : ${dec2hexWord(cpu.registers.pc)}`);
-    console.log(`ac : ${dec2hexWord(cpu.registers.a)}`);
-    console.log(`x : ${dec2hexWord(cpu.registers.x)}`);
-    console.log(`y : ${dec2hexWord(cpu.registers.y)}`);
+    console.log(`a : ${dec2hexByte(cpu.registers.a)}`);
+    console.log(`x : ${dec2hexByte(cpu.registers.x)}`);
+    console.log(`y : ${dec2hexByte(cpu.registers.y)}`);
     // console.log(`acc : ${dec2hexWord(cpu.registers.acc)}`);
 }    
 
 function dec2hexWord(dec) {
     return dec.toString(16).padStart(4, '0').toUpperCase();
+}
+
+function dec2hexByte(dec) {
+    return dec.toString(16).padStart(2, '0').toUpperCase();
 }
 
 // ADC %
@@ -118,6 +130,54 @@ cpu.steps(25);
 assert(cpu.registers.a == 0x0A);
 assert(cpu.registers.x == 0x0A);
 assert(cpu.registers.y == 0x01);
+
+console.log('Test LDA');
+cpu = new CPU;
+cpu.memory.writeByte(0x00EF, 0x37);
+cpu.memory.writeByte(0x00DF, 0x73);
+cpu.memory.writeByte(0x00CF, 0x42);
+
+// Set up address for IND,Y test
+cpu.memory.writeByte(0x00B0, 0x01); // Low byte 01
+cpu.memory.writeByte(0x00B1, 0x02); // High byte 02, thus 0201, will add 2 from Y
+cpu.memory.writeByte(0x0203, 0x96); // Put 96 in 0203
+
+// Set up memory for XIND test
+cpu.memory.writeByte(0x00C4, 0x44); // Low byte in zero page
+cpu.memory.writeByte(0x00C5, 0x00); // High byte in zero page
+cpu.memory.writeByte(0x0044, 0x21); // Value we're going to add to A
+
+cpu.memory.hexLoad(0x0600, 'A9 69 AD EF 00 A5 DF A0 01 B9 CE 00 A0 02 B1 B0 A2 04 61 C0');
+cpu.registers.pc = 0x0600;
+// Test immediate
+cpu.steps(2);
+assertEquals(cpu.registers.a, 0x69);
+
+// Test absolute
+cpu.steps(4);
+assertEquals(cpu.registers.a, 0x37);
+
+// Test zero page
+cpu.steps(3);
+assertEquals(cpu.registers.a, 0x73);
+
+// Test ABS,Y
+cpu.steps(2); // LDY # 01
+cpu.steps(4); // LDA CF+Y
+assertEquals(cpu.registers.a, 0x42);
+
+// Test INDY - The zero page address is dereferenced, and the Y register is added to the resulting address
+cpu.steps(2); // LDY # 02
+cpu.steps(5);
+assertEquals(cpu.registers.a, 0x96);
+
+// Text XIND
+cpu.steps(2); // LDX # 04
+cpu.steps(6) // ADC XIND
+assertEquals(cpu.registers.a, 0xB7);
+
+
+
 
 // cpu = new CPU;
 // cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
