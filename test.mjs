@@ -176,6 +176,15 @@ cpu.steps(2); // LDX # 04
 cpu.steps(6) // ADC XIND
 assertEquals(cpu.registers.a, 0xB7);
 
+// Zero page, X addressing mode
+cpu = new CPU;
+cpu.registers.x = 0x05;
+cpu.memory.hexLoad(0x0600, 'B5 05');
+cpu.memory.writeByte(0x000A, 0x69); 
+cpu.registers.pc = 0x0600;
+cpu.steps(4);
+assertEquals(cpu.registers.a, 0x69);
+
 
 
 

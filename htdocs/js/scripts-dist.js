@@ -1325,10 +1325,22 @@
           break;
         case "ZPG":
           (() => {
-            let lowByte, highByte;
+            let lowByte;
             this.queueStep(() => {
               lowByte = this.popByte();
               const addr = lowByte;
+              operand.value = addr;
+            });
+          })();
+          break;
+        case "ZPGX":
+          (() => {
+            let lowByte;
+            this.queueStep(() => {
+              lowByte = this.popByte();
+            });
+            this.queueStep(() => {
+              const addr = lowByte + this.registers.x & 255;
               operand.value = addr;
             });
           })();

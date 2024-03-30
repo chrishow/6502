@@ -475,9 +475,9 @@ export class CPU {
                 })();
                 break;
 
-            case 'ZPG': // One-byte Zero page address
+                case 'ZPG': // One-byte Zero page address
                 (() => {
-                    let lowByte, highByte;
+                    let lowByte;
 
                     this.queueStep(() => {
                         lowByte = this.popByte();
@@ -485,6 +485,26 @@ export class CPU {
                         const addr = lowByte;
                         operand.value = addr;
                     });
+
+                })();
+                break;
+
+                case 'ZPGX': // One-byte Zero page address indexed by X
+                (() => {
+                    let lowByte;
+
+                    this.queueStep(() => {
+                        lowByte = this.popByte();
+                        // console.log(`Got lowByte: ${lowByte}`);
+                    });
+
+                    this.queueStep(() => {
+                        const addr = (lowByte + this.registers.x) & 0xFF;
+                        // console.log(`Got lowByte: ${lowByte}`);
+                        operand.value = addr;
+                    });
+
+                    
 
                 })();
                 break;
