@@ -761,11 +761,11 @@
     render() {
       const offset = 1536;
       let memDisplay = [];
-      let j2 = 0;
-      for (let i4 = 0; i4 < 8; i4++) {
+      let i4, j2 = 0;
+      for (i4 = 0; i4 < 8; i4++) {
         memDisplay.push(x`0x${_CPUDisplay.formatWord(offset + i4 * 8 + j2)}: `);
-        for (let j3 = 0; j3 < 8; j3++) {
-          let addr = offset + i4 * 8 + j3;
+        for (j2 = 0; j2 < 8; j2++) {
+          let addr = offset + i4 * 8 + j2;
           if (this.registers.pc == addr) {
             memDisplay.push(x`<span>${_CPUDisplay.formatByte(this.memory._mem[addr])}</span> `);
           } else {
@@ -773,6 +773,21 @@
           }
         }
         memDisplay.push(x`<br>\n`);
+      }
+      const stackTop = 511;
+      let stackDisplay = [];
+      j2 = 0;
+      for (i4 = 0; i4 < 4; i4++) {
+        stackDisplay.push(x`0x${_CPUDisplay.formatWord(stackTop - (i4 * 8 + j2))}: `);
+        for (j2 = 0; j2 < 8; j2++) {
+          let addr = stackTop - (i4 * 8 + j2);
+          if (this.registers.sp + 256 == addr) {
+            stackDisplay.push(x`<span>${_CPUDisplay.formatByte(this.memory._mem[addr])}</span> `);
+          } else {
+            stackDisplay.push(x`${_CPUDisplay.formatByte(this.memory._mem[addr])} `);
+          }
+        }
+        stackDisplay.push(x`<br>\n`);
       }
       return x`<table>
         <tr>
@@ -834,8 +849,11 @@
 
     
     <div class=memory>
-    <textarea></textarea>
     ${memDisplay}
+    </div>
+
+    <div class=stack>
+    ${stackDisplay}
     </div>
 
     <div class=buttons>
@@ -921,9 +939,15 @@
         }
 
         .memory {
+            margin-bottom: 1em;
+            
             > span {
                 background-color: pink;
             }
+        }
+
+        .stack > span {
+            background-color: #cfc;
         }
 	`);
   var CPUDisplay = _CPUDisplay;

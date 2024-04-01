@@ -93,9 +93,15 @@ export class CPUDisplay extends LitElement {
         }
 
         .memory {
+            margin-bottom: 1em;
+            
             > span {
                 background-color: pink;
             }
+        }
+
+        .stack > span {
+            background-color: #cfc;
         }
 	`;
 
@@ -143,10 +149,11 @@ export class CPUDisplay extends LitElement {
         const offset = 0x0600;
 
         let memDisplay = [];
-        let j = 0;
-        for(let i = 0; i < 8; i++) {
+        let i, j = 0;
+
+        for(i = 0; i < 8; i++) {
             memDisplay.push(html`0x${CPUDisplay.formatWord(offset + (i*8)+j)}: `);
-            for(let j = 0; j < 8; j++) {
+            for(j = 0; j < 8; j++) {
                 let addr = offset + (i*8)+j;
                 if(this.registers.pc == addr) {
                     memDisplay.push(html`<span>${CPUDisplay.formatByte(this.memory._mem[addr])}</span> `);
@@ -156,6 +163,24 @@ export class CPUDisplay extends LitElement {
             }
             memDisplay.push(html`<br>\n`);
         }
+
+        const stackTop = 0x1FF;
+        let stackDisplay = [];
+        j = 0;
+        for(i = 0; i < 4; i++) { // lines
+            stackDisplay.push(html`0x${CPUDisplay.formatWord(stackTop - ((i*8)+j))}: `);
+            for(j = 0; j < 8; j++) {
+                let addr = stackTop - ((i*8)+j);
+                if(this.registers.sp + 0x100 == addr) {
+                    stackDisplay.push(html`<span>${CPUDisplay.formatByte(this.memory._mem[addr])}</span> `);
+                } else {
+                    stackDisplay.push(html`${CPUDisplay.formatByte(this.memory._mem[addr])} `);
+                }
+            }
+            stackDisplay.push(html`<br>\n`);
+        }
+
+        
 
 		return html`<table>
         <tr>
@@ -217,8 +242,11 @@ export class CPUDisplay extends LitElement {
 
     
     <div class=memory>
-    <textarea></textarea>
     ${memDisplay}
+    </div>
+
+    <div class=stack>
+    ${stackDisplay}
     </div>
 
     <div class=buttons>
