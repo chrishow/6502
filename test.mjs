@@ -233,6 +233,8 @@ assertEquals(cpu.registers.x, 0x05);
 assertEquals(cpu.registers.y, 0x00);
 assertEquals(cpu.registers.sp, 0xFD);
 assertEquals(cpu.registers.pc, 0x0613);
+assertEquals(cpu.registers.sr.z, 1);
+assertEquals(cpu.registers.sr.c, 1);
 
 
 /*

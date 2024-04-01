@@ -856,6 +856,8 @@
     ${stackDisplay}
     </div>
 
+    <div class='current-instruction'>${this.cpu.currentInstructionDisplay}</div>
+
     <div class=buttons>
         <button @click="${this.step}" title='Step' ?disabled=${this.cpu.isRunning}>⏯</button>
         <button @click="${this.start}" title='Start'  ?disabled=${this.cpu.isRunning}>▶️</button>
@@ -940,7 +942,7 @@
 
         .memory {
             margin-bottom: 1em;
-            
+
             > span {
                 background-color: pink;
             }
@@ -948,6 +950,10 @@
 
         .stack > span {
             background-color: #cfc;
+        }
+
+        .current-instruction {
+            margin-top: 1em;
         }
 	`);
   var CPUDisplay = _CPUDisplay;
@@ -1039,7 +1045,6 @@
           this.tickCount++;
           this.processTick();
         }
-        this.updateDisplay();
         this.newZeroTimeout(this.doTick.bind(this));
       } else {
         this.updateDisplay();
@@ -1091,7 +1096,7 @@
       let instruction, mode;
       const opcode = this.memory.readByte(this.registers.pc);
       [instruction, mode] = InstructionDecoder.decodeOpcode(opcode);
-      console.log(`instruction: ${instruction}, mode: ${mode}`);
+      this.currentInstructionDisplay = `Instruction: ${instruction}, mode: ${mode}`;
       switch (instruction) {
         case "ADC":
           (() => {
@@ -1174,7 +1179,6 @@
             let operand = {};
             this.getOperand(mode, operand);
             this.queueStep(() => {
-              console.log(`JMP to ${_CPU.dec2hexByte(operand.value)}`);
               this.registers.pc = operand.value;
             });
           })();
@@ -1290,7 +1294,7 @@
       this.memory.writeByte(this.registers.sp + 256, value);
       this.registers.sp--;
       if (this.registers.sp < 0) {
-        console.log("Stack has overflowed! Wrapping...");
+        console.error("Stack has overflowed! Wrapping...");
         this.registers.sp = this.registers.sp & 255;
       }
     }
@@ -1304,7 +1308,7 @@
       let value;
       this.registers.sp++;
       if (this.registers.sp >= 256) {
-        console.log("Stack has underflowed! Wrapping...");
+        console.error("Stack has underflowed! Wrapping...");
         this.registers.sp = this.registers.sp & 255;
       }
       value = this.memory.readByte(this.registers.sp + 256);
@@ -1345,14 +1349,12 @@
       if (mode === "#") {
         this.queueStep(() => {
           this.getOperand(mode, operand);
-          console.log(`LD${reg.toUpperCase()} immediate  ${_CPU.dec2hexByte(operand.value)}, PC ${_CPU.dec2hexWord(this.registers.pc)}`);
           this.registers[reg] = operand.value;
           this.updateFlags(this.registers[reg]);
         });
       } else {
         this.getOperand(mode, operand);
         this.queueStep(() => {
-          console.log(`LD${reg.toUpperCase()} ${mode} from 0x${_CPU.dec2hexByte(operand.value)}`);
           this.registers[reg] = this.memory.readByte(operand.value);
           this.updateFlags(this.registers[reg]);
         });
@@ -1368,7 +1370,6 @@
       let operand = {};
       this.getOperand(mode, operand);
       this.queueStep(() => {
-        console.log(`ST${reg.toUpperCase()} ${_CPU.dec2hexByte(this.registers[reg])} to ${_CPU.dec2hexWord(operand.value)}`);
         this.memory.writeByte(operand.value, this.registers[reg]);
       });
     }
@@ -1492,7 +1493,7 @@
           })();
           break;
         default:
-          console.log(`Unknown addressing mode '${mode}'`);
+          console.error(`Unknown addressing mode '${mode}'`);
           break;
       }
     }
@@ -1644,7 +1645,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "20 09 06 20 0c 06 20 12 06 a2 00 60 e8 e0 05 d0 fb 60 00");
+    cpu.memory.hexLoad(1536, "a2 00 e8 8e 20 06 4c 02 06");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

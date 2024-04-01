@@ -46,7 +46,7 @@ export class CPU {
                 this.processTick();
             }
 
-            this.updateDisplay();
+            // this.updateDisplay();
 
             // Do another batch
             this.newZeroTimeout(this.doTick.bind(this));            
@@ -109,7 +109,8 @@ export class CPU {
         let instruction, mode;
         const opcode = this.memory.readByte(this.registers.pc);
         [instruction, mode] = InstructionDecoder.decodeOpcode(opcode);
-        console.log(`instruction: ${instruction}, mode: ${mode}`);
+        // console.log(`instruction: ${instruction}, mode: ${mode}`);
+        this.currentInstructionDisplay = `Instruction: ${instruction}, mode: ${mode}`;
 
 
         switch (instruction) {
@@ -223,7 +224,7 @@ export class CPU {
 
                     this.queueStep(() => {
                         // Do the jump
-                        console.log(`JMP to ${CPU.dec2hexByte(operand.value)}`);
+                        // console.log(`JMP to ${CPU.dec2hexByte(operand.value)}`);
                         this.registers.pc = operand.value;
                     });
 
@@ -384,7 +385,7 @@ export class CPU {
         this.registers.sp--;
 
         if (this.registers.sp < 0) { // Stack has overflowed!
-            console.log('Stack has overflowed! Wrapping...')
+            console.error('Stack has overflowed! Wrapping...')
             this.registers.sp = this.registers.sp & 0xff; // Wrap
         }
     }
@@ -401,7 +402,7 @@ export class CPU {
         this.registers.sp++;
 
         if (this.registers.sp >= 0x100) {
-            console.log('Stack has underflowed! Wrapping...')
+            console.error('Stack has underflowed! Wrapping...')
             this.registers.sp = this.registers.sp & 0xFF;
         }
 
@@ -453,7 +454,7 @@ export class CPU {
         if(mode === '#') { // Must do all this in one cycle
             this.queueStep(() => {
                 this.getOperand(mode, operand);
-                console.log(`LD${reg.toUpperCase()} immediate  ${CPU.dec2hexByte(operand.value)}, PC ${CPU.dec2hexWord(this.registers.pc)}`);
+                // console.log(`LD${reg.toUpperCase()} immediate  ${CPU.dec2hexByte(operand.value)}, PC ${CPU.dec2hexWord(this.registers.pc)}`);
                 this.registers[reg] = operand.value;
                 this.updateFlags(this.registers[reg]);
             });
@@ -462,7 +463,7 @@ export class CPU {
             this.getOperand(mode, operand);
 
             this.queueStep(() => {
-                console.log(`LD${reg.toUpperCase()} ${mode} from 0x${CPU.dec2hexByte(operand.value)}`);
+                // console.log(`LD${reg.toUpperCase()} ${mode} from 0x${CPU.dec2hexByte(operand.value)}`);
                 this.registers[reg] = this.memory.readByte(operand.value);
                 this.updateFlags(this.registers[reg]);
             });    
@@ -482,7 +483,7 @@ export class CPU {
 
         this.queueStep(() => {
             // Store the byte
-            console.log(`ST${reg.toUpperCase()} ${CPU.dec2hexByte(this.registers[reg])} to ${CPU.dec2hexWord(operand.value)}`);
+            // console.log(`ST${reg.toUpperCase()} ${CPU.dec2hexByte(this.registers[reg])} to ${CPU.dec2hexWord(operand.value)}`);
             this.memory.writeByte(operand.value, this.registers[reg]);
         });
 
@@ -676,7 +677,7 @@ export class CPU {
                 break;
 
             default:
-                console.log(`Unknown addressing mode '${mode}'`);
+                console.error(`Unknown addressing mode '${mode}'`);
                 break;
         }
     }

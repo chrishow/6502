@@ -94,7 +94,7 @@ export class CPUDisplay extends LitElement {
 
         .memory {
             margin-bottom: 1em;
-            
+
             > span {
                 background-color: pink;
             }
@@ -102,6 +102,10 @@ export class CPUDisplay extends LitElement {
 
         .stack > span {
             background-color: #cfc;
+        }
+
+        .current-instruction {
+            margin-top: 1em;
         }
 	`;
 
@@ -142,7 +146,6 @@ export class CPUDisplay extends LitElement {
     fastForward() {
         this.cpu.fastForward();
     }
-
 
 	// Render the UI as a function of component state
 	render() {
@@ -248,6 +251,8 @@ export class CPUDisplay extends LitElement {
     <div class=stack>
     ${stackDisplay}
     </div>
+
+    <div class='current-instruction'>${this.cpu.currentInstructionDisplay}</div>
 
     <div class=buttons>
         <button @click="${this.step}" title='Step' ?disabled=${this.cpu.isRunning}>⏯</button>
