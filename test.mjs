@@ -205,7 +205,7 @@ cpu.memory.hexLoad(0x0000, 'CA');
 cpu.steps(2);
 assertEquals(cpu.registers.x, 0xFF);
 
-
+// PHA PLA 
 cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
 cpu.registers.pc = 0x0600;
@@ -214,6 +214,25 @@ assertEquals(cpu.registers.a, 0x00);
 assertEquals(cpu.registers.x, 0x10);
 assertEquals(cpu.registers.y, 0x20);
 assertEquals(cpu.registers.sp, 0xFF);
+
+// JMP
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 03 4c 08 06 00 00 00 8d 00 02');
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.memory.readByte(0x0200), 0x03);
+
+
+// JSR & RTS
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, '20 09 06 20 0c 06 20 12 06 a2 00 60 e8 e0 05 d0 fb 60 00');
+cpu.registers.pc = 0x0600;
+cpu.steps(63);
+assertEquals(cpu.registers.a, 0x00);
+assertEquals(cpu.registers.x, 0x05);
+assertEquals(cpu.registers.y, 0x00);
+assertEquals(cpu.registers.sp, 0xFD);
+assertEquals(cpu.registers.pc, 0x0613);
 
 
 /*

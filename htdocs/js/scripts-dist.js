@@ -1179,6 +1179,28 @@
             });
           })();
           break;
+        case "JSR":
+          (() => {
+            let returnAddress, highByte, lowByte;
+            this.queueStep(() => {
+              lowByte = this.popByte();
+            });
+            this.queueStep(() => {
+              highByte = this.popByte();
+            });
+            this.queueStep(() => {
+              returnAddress = this.registers.pc - 1;
+              console.log(`saving return address ${_CPU.dec2hexWord(returnAddress)} on stack`);
+              this.pushToStack(returnAddress >> 8);
+            });
+            this.queueStep(() => {
+              this.pushToStack(returnAddress & 255);
+            });
+            this.queueStep(() => {
+              this.registers.pc = lowByte + (highByte << 8);
+            });
+          })();
+          break;
         case "LDA":
           this.loadRegister("a", mode);
           break;
@@ -1200,6 +1222,22 @@
           });
           this.queueStep(() => {
             this.registers.a = this.pullFromStack();
+          });
+          break;
+        case "RTS":
+          let returnAddressLowByte, returnAddressHighByte;
+          this.queueStep(() => {
+            return returnAddressLowByte = this.pullFromStack();
+          });
+          this.queueStep(() => {
+            return returnAddressHighByte = this.pullFromStack();
+          });
+          this.queueStep(() => {
+          });
+          this.queueStep(() => {
+          });
+          this.queueStep(() => {
+            this.registers.pc = returnAddressLowByte + (returnAddressHighByte << 8) + 1;
           });
           break;
         case "STA":
@@ -1606,7 +1644,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7");
+    cpu.memory.hexLoad(1536, "20 09 06 20 0c 06 20 12 06 a2 00 60 e8 e0 05 d0 fb 60 00");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

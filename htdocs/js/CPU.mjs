@@ -230,6 +230,35 @@ export class CPU {
                 })();
                 break;
 
+            case 'JSR': // Jump to subroutine. 
+                (() => {
+                    let returnAddress, highByte, lowByte;
+
+                    this.queueStep(() => { // Clock cycle 2
+                        lowByte = this.popByte();
+                    });
+
+                    this.queueStep(() => { // Clock cycle 3
+                        highByte = this.popByte();
+                    });
+
+                    this.queueStep(() => { // Clock cycle 4
+                        returnAddress = this.registers.pc - 1;
+                        console.log(`saving return address ${CPU.dec2hexWord(returnAddress)} on stack`)
+                        this.pushToStack(returnAddress >> 8); // Save low byte of return address on stack
+                    });
+
+                    this.queueStep(() => { // Clock cycle 5
+                        this.pushToStack(returnAddress & 0xFF); // Save high byte of return address on stack
+                    });
+
+                    this.queueStep(() => { // Clock cycle 6
+                        this.registers.pc = lowByte + (highByte << 8);
+                    });
+
+                })();
+                break;
+
             case 'LDA': // Load into accumulator
                 this.loadRegister('a', mode);
                 break;
@@ -242,7 +271,7 @@ export class CPU {
                 this.loadRegister('y', mode);
                 break;
 
-                case 'PHA': // Push a onto stack
+            case 'PHA': // Push a onto stack
                 // This takes three cycles total, so need to use two here
                 this.queueStep(() => {
                 });
@@ -258,6 +287,31 @@ export class CPU {
                 this.queueStep(() => {
                     this.registers.a = this.pullFromStack();
                 });
+                break;
+
+            case 'RTS': // Return from subroutine
+                let returnAddressLowByte, returnAddressHighByte;
+
+                this.queueStep(() => { // Clock cycle 2
+                    return returnAddressLowByte = this.pullFromStack();
+                });
+
+                this.queueStep(() => { // Clock cycle 3
+                    return returnAddressHighByte = this.pullFromStack();
+                });
+
+                this.queueStep(() => { // Clock cycle 4
+                });
+
+                this.queueStep(() => { // Clock cycle 5
+                });
+
+                this.queueStep(() => { // Clock cycle 3
+                    this.registers.pc = (returnAddressLowByte + (returnAddressHighByte << 8) + 1);
+                });
+
+                
+
                 break;
 
             case 'STA': // Store Accumulator in Memory
