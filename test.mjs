@@ -206,21 +206,14 @@ cpu.steps(2);
 assertEquals(cpu.registers.x, 0xFF);
 
 
-
-// cpu = new CPU;
-// cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
-// cpu.registers.pc = 0x0600;
-// cpu.steps(100);
-
-
-
-// cpu = new CPU;
-// cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
-// cpu.registers.pc = 0x0600;
-// cpu.steps(25);
-// assert(cpu.registers.a == 0x0A);
-// assert(cpu.registers.x == 0x0A);
-// assert(cpu.registers.y == 0x01);
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
+cpu.registers.pc = 0x0600;
+cpu.steps(485);
+assertEquals(cpu.registers.a, 0x00);
+assertEquals(cpu.registers.x, 0x10);
+assertEquals(cpu.registers.y, 0x20);
+assertEquals(cpu.registers.sp, 0xFF);
 
 
 /*

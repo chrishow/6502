@@ -182,60 +182,17 @@ export class CPU {
                 });
                 break;
 
+            case 'CMP': // Compare a, or a - operand
+                this.compareRegister('a', mode);
+                break;
+
             case 'CPX': // Compare x, or x - operand
-                (() => {
-                    let operand = {}; // We use an object, so it is passed by reference
-
-                    if(mode !== '#') {
-                        this.getOperand(mode, operand);
-                    }
-
-                    this.queueStep(() => {
-                        if(mode === '#') {
-                            this.getOperand(mode, operand);
-                        }
-
-                        let result = this.registers.x - operand.value;
-                        
-                        if(result < 0) {
-                            this.registers.sr.c = 0;
-                        } else {
-                            this.registers.sr.c = 1;
-                        }
-
-                        this.updateFlags(result);
-                    });
-
-                })();
+                this.compareRegister('x', mode);
                 break;
 
-            case 'CMP': // Compare ac, or ac - operand
-                (() => {
-                    let operand = {}; // We use an object, so it is passed by reference
-
-                    if(mode !== '#') {
-                        this.getOperand(mode, operand);
-                    }
-
-                    this.queueStep(() => {
-                        if(mode === '#') {
-                            this.getOperand(mode, operand);
-                        }
-
-                        let result = this.registers.a - operand.value;
-                        
-                        if(result < 0) {
-                            this.registers.sr.c = 0;
-                        } else {
-                            this.registers.sr.c = 1;
-                        }
-
-                        this.updateFlags(result);
-                    });
-
-                })();
+            case 'CPY': // Compare y, or y - operand
+                this.compareRegister('y', mode);
                 break;
-
 
             case 'DEX': // Decrement X
                 this.queueStep(() => {
@@ -285,12 +242,21 @@ export class CPU {
                 this.loadRegister('y', mode);
                 break;
 
-            case 'PHA': // Push a onto stack
+                case 'PHA': // Push a onto stack
                 // This takes three cycles total, so need to use two here
                 this.queueStep(() => {
                 });
                 this.queueStep(() => {
                     this.pushToStack(this.registers.a);
+                });
+                break;
+
+            case 'PLA': // Pull from stack onto a
+                // This takes three cycles total, so need to use two here
+                this.queueStep(() => {
+                });
+                this.queueStep(() => {
+                    this.registers.a = this.pullFromStack();
                 });
                 break;
 
@@ -344,10 +310,10 @@ export class CPU {
                     this.registers.sp = this.registers.x;
 
                 });
-                break;
+            break;
 
-                default:
-                console.log(`Unknown instruction ${instruction}`);                
+            default:
+                console.error(`Unknown instruction ${instruction}`);                
         }
 
     }
@@ -370,9 +336,61 @@ export class CPU {
     }
 
     /**
+     * Pop a value from the stack, and adjust the stack pointer
+     * @param {byte}  
+     * 
+     * @return {Byte} value
+     */
+    pullFromStack() {
+        let value;
+
+        this.registers.sp++;
+
+        if (this.registers.sp >= 0x100) {
+            console.log('Stack has underflowed! Wrapping...')
+            this.registers.sp = this.registers.sp & 0xFF;
+        }
+
+        value = this.memory.readByte(this.registers.sp + 0x100);
+        return value;
+    }
+
+    /**
+     * Compare a register to memory
+     * 
+     * @param {char} reg 
+     * @param {String} mode 
+     */
+    compareRegister(reg, mode) {
+        let operand = {}; // We use an object, so it is passed by reference
+
+        if(mode !== '#') {
+            this.getOperand(mode, operand);
+        }
+
+        this.queueStep(() => {
+            if(mode === '#') {
+                this.getOperand(mode, operand);
+            }
+
+            let result = this.registers[reg] - operand.value;
+            
+            if(result < 0) {
+                this.registers.sr.c = 0;
+            } else {
+                this.registers.sr.c = 1;
+            }
+
+            this.updateFlags(result);
+        });
+    }
+
+
+    /**
      * Load a register
      * 
      * @param {char} reg 
+     * @paran {String} mode
      */
     loadRegister(reg, mode) {
         let operand = {};

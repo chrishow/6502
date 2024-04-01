@@ -1118,45 +1118,14 @@
             this.registers.sr.c = 0;
           });
           break;
-        case "CPX":
-          (() => {
-            let operand = {};
-            if (mode !== "#") {
-              this.getOperand(mode, operand);
-            }
-            this.queueStep(() => {
-              if (mode === "#") {
-                this.getOperand(mode, operand);
-              }
-              let result = this.registers.x - operand.value;
-              if (result < 0) {
-                this.registers.sr.c = 0;
-              } else {
-                this.registers.sr.c = 1;
-              }
-              this.updateFlags(result);
-            });
-          })();
-          break;
         case "CMP":
-          (() => {
-            let operand = {};
-            if (mode !== "#") {
-              this.getOperand(mode, operand);
-            }
-            this.queueStep(() => {
-              if (mode === "#") {
-                this.getOperand(mode, operand);
-              }
-              let result = this.registers.a - operand.value;
-              if (result < 0) {
-                this.registers.sr.c = 0;
-              } else {
-                this.registers.sr.c = 1;
-              }
-              this.updateFlags(result);
-            });
-          })();
+          this.compareRegister("a", mode);
+          break;
+        case "CPX":
+          this.compareRegister("x", mode);
+          break;
+        case "CPY":
+          this.compareRegister("y", mode);
           break;
         case "DEX":
           this.queueStep(() => {
@@ -1202,6 +1171,13 @@
             this.pushToStack(this.registers.a);
           });
           break;
+        case "PLA":
+          this.queueStep(() => {
+          });
+          this.queueStep(() => {
+            this.registers.a = this.pullFromStack();
+          });
+          break;
         case "STA":
           this.storeRegister("a", mode);
           break;
@@ -1241,7 +1217,7 @@
           });
           break;
         default:
-          console.log(`Unknown instruction ${instruction}`);
+          console.error(`Unknown instruction ${instruction}`);
       }
     }
     /**
@@ -1257,9 +1233,50 @@
       }
     }
     /**
+     * Pop a value from the stack, and adjust the stack pointer
+     * @param {byte}  
+     * 
+     * @return {Byte} value
+     */
+    pullFromStack() {
+      let value;
+      this.registers.sp++;
+      if (this.registers.sp >= 256) {
+        console.log("Stack has underflowed! Wrapping...");
+        this.registers.sp = this.registers.sp & 255;
+      }
+      value = this.memory.readByte(this.registers.sp + 256);
+      return value;
+    }
+    /**
+     * Compare a register to memory
+     * 
+     * @param {char} reg 
+     * @param {String} mode 
+     */
+    compareRegister(reg, mode) {
+      let operand = {};
+      if (mode !== "#") {
+        this.getOperand(mode, operand);
+      }
+      this.queueStep(() => {
+        if (mode === "#") {
+          this.getOperand(mode, operand);
+        }
+        let result = this.registers[reg] - operand.value;
+        if (result < 0) {
+          this.registers.sr.c = 0;
+        } else {
+          this.registers.sr.c = 1;
+        }
+        this.updateFlags(result);
+      });
+    }
+    /**
      * Load a register
      * 
      * @param {char} reg 
+     * @paran {String} mode
      */
     loadRegister(reg, mode) {
       let operand = {};
