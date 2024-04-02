@@ -4,3 +4,7 @@ https://www.masswerk.at/6502/6502_instruction_set.html
 
 Instruction set with logic pseudocode:
 https://www.csh.rit.edu/~moffitt/docs/6502.html
+
+
+Good opcode data:
+http://www.6502.org/tutorials/6502opcodes.html

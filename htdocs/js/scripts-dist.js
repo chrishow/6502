@@ -1131,6 +1131,33 @@
             this.doBranch(operand.value);
           });
           break;
+        case "BIT":
+          (() => {
+            let operand = {};
+            let value;
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              value = this.memory.readByte(operand.value);
+              this.registers.sr.n = (value & 128) > 0 ? 1 : 0;
+              this.registers.sr.v = (value & 64) > 0 ? 1 : 0;
+              if (value & this.registers.a !== 0) {
+                this.registers.sr.z = 0;
+              } else {
+                this.registers.sr.z = 1;
+              }
+            });
+          })();
+          break;
+        case "BMI":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            if (this.registers.sr.n === 0) {
+              return;
+            }
+            this.doBranch(operand.value);
+          });
+          break;
         case "BNE":
           this.queueStep(() => {
             let operand = {};

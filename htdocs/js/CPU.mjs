@@ -158,6 +158,46 @@ export class CPU {
                 });
                 break;
 
+            case 'BIT': // BIT test, takes three (zero page) or four (absolute) cycles
+                (() => {
+                    let operand = {};
+                    let value;
+
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => { // Step 2
+                        value = this.memory.readByte(operand.value);
+                        // console.log(`value 0x${CPU.dec2hexByte(value)} read from: 0x${CPU.dec2hexWord(operand.value)}, ${mode}`);
+
+                        this.registers.sr.n = (value & 0x80) > 0 ? 1 : 0; // Bit 7 of operand 
+                        this.registers.sr.v = (value & 0x40) > 0 ? 1 : 0 // Bit 6 of operand
+
+                        if(value & this.registers.a !== 0) {
+                            // Result is non-zero
+                            this.registers.sr.z = 0;
+                        } else {
+                            this.registers.sr.z = 1;
+                        }
+                    });
+
+                })();
+                break;
+
+            case 'BMI': // Branch on  Minus
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.n === 0) { // Not negative, don't branch
+                        // console.log(`BMI,  z = 1 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
+                        return;
+                    } 
+
+                    this.doBranch(operand.value);
+                });
+                break;
+
+
             case 'BNE': // branch on zero flag = 0
                 this.queueStep(() => {
                     let operand = {};
@@ -172,7 +212,7 @@ export class CPU {
                 });
                 break;
 
-                case 'BPL': // Branch on positive
+            case 'BPL': // Branch on positive
                     this.queueStep(() => {
                         let operand = {};
                         this.getOperand(mode, operand);

@@ -24,9 +24,10 @@ function dumpCpu() {
     console.log(`a : ${dec2hexByte(cpu.registers.a)}`);
     console.log(`x : ${dec2hexByte(cpu.registers.x)}`);
     console.log(`y : ${dec2hexByte(cpu.registers.y)}`);
-    console.log(`sr.n : ${dec2hexByte(cpu.registers.sr.n)}`);
-    console.log(`sr.z : ${dec2hexByte(cpu.registers.sr.z)}`);
-    console.log(`sr.c : ${dec2hexByte(cpu.registers.sr.c)}`);
+    console.log(`sr.n : ${cpu.registers.sr.n}`);
+    console.log(`sr.v : ${cpu.registers.sr.v}`);
+    console.log(`sr.z : ${cpu.registers.sr.z}`);
+    console.log(`sr.c : ${cpu.registers.sr.c}`);
     // console.log(`acc : ${dec2hexWord(cpu.registers.acc)}`);
 }    
 
@@ -249,6 +250,16 @@ cpu.memory.hexLoad(0x0600, 'a9 00 f0 02 a9 99'); // LDA #$00, BEQ end, LDA #$99,
 cpu.registers.pc = 0x0600;
 cpu.steps(10);
 assertEquals(cpu.registers.a, 0x00);
+
+console.log('Test BIT');
+cpu.memory.writeByte(0x01, 0xFF);
+cpu.memory.writeByte(0xBEEF, 0x01);
+cpu.memory.hexLoad(0x0600, 'a9 40 24 01 2c ef be'); // LDA #$40, BIT $01, BIT $BEEF
+cpu.registers.pc = 0x0600;
+cpu.steps(5);
+dumpCpu();
+cpu.steps(4);
+dumpCpu();
 
 
 
