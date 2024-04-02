@@ -149,7 +149,7 @@ export class CPUDisplay extends LitElement {
 
 	// Render the UI as a function of component state
 	render() {
-        const offset = 0x0600;
+        const offset = 0xFF00;
 
         let memDisplay = [];
         let i, j = 0;

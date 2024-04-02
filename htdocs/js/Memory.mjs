@@ -1,5 +1,5 @@
 export class Memory {
-    static MEM_SIZE = 16 * 1024;
+    static MEM_SIZE = 64 * 1024;
     // static MEM_SIZE = 128;
 
 

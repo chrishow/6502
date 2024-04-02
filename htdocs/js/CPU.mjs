@@ -144,34 +144,47 @@ export class CPU {
                 })();
                 break;
 
-            case 'BNE': // branch on Z = 0, operand is two's complement
+            case 'BEQ': // Branch on zero flag = 1
                 this.queueStep(() => {
                     let operand = {};
                     this.getOperand(mode, operand);
 
-                    if(this.registers.sr.z !== 0) {
-                        console.log(`BNE,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
+                    if(this.registers.sr.z === 0) { // Zero flag is not set, don't branch
+                        // console.log(`BEQ,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
                         return;
                     } 
 
-                    let newAddr = null;
-
-
-                    // Operand is 2s complement
-                    if (operand.value > 0x7f) { 
-                        // A negative offset
-                        newAddr = (this.registers.pc - (0x100 - operand.value));
-                    } else {
-                        // A positive offset
-                        newAddr = (this.registers.pc + operand.value);
-                    }
-
-                    console.log(`BNE jump to ${CPU.dec2hexWord(newAddr)}`);
-                    this.registers.pc = newAddr;
-                      
+                    this.doBranch(operand.value);                    
                 });
-
                 break;
+
+            case 'BNE': // branch on zero flag = 0
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.z === 1) { // Zero flag is set, do not branch
+                        // console.log(`BNE,  z = 1 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
+                        return;
+                    } 
+
+                    this.doBranch(operand.value);
+                });
+                break;
+
+                case 'BPL': // Branch on positive
+                    this.queueStep(() => {
+                        let operand = {};
+                        this.getOperand(mode, operand);
+
+                        if(this.registers.sr.n === 1) { // Negative flag set, don't branch
+                            // console.log(`BEQ,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
+                            return;
+                        } 
+
+                        this.doBranch(operand.value);                    
+                    });
+                    break;
 
             case 'BRK': // This isn't actually what the 6502 does, we will just stop the program for now
                 this.stop();
@@ -180,6 +193,18 @@ export class CPU {
             case 'CLC': // Clear carry flag
                 this.queueStep(() => {
                     this.registers.sr.c = 0;
+                });
+                break;
+
+            case 'CLD': // Clear decimal mode
+                this.queueStep(() => {
+                    this.registers.sr.d = 0;
+                });
+                break;
+
+            case 'CLI': // Clear Interrupt Disable Bit
+                this.queueStep(() => {
+                    this.registers.sr.i = 0;
                 });
                 break;
 
@@ -245,7 +270,7 @@ export class CPU {
 
                     this.queueStep(() => { // Clock cycle 4
                         returnAddress = this.registers.pc - 1;
-                        console.log(`saving return address ${CPU.dec2hexWord(returnAddress)} on stack`)
+                        // console.log(`saving return address ${CPU.dec2hexWord(returnAddress)} on stack`)
                         this.pushToStack(returnAddress >> 8); // Save low byte of return address on stack
                     });
 
@@ -372,6 +397,28 @@ export class CPU {
         }
 
     }
+
+    /**
+     * Perform a branch
+     * 
+     * @param {signed byte} offset 
+     */
+    doBranch(offset) {
+        let newAddr;
+
+        // Operand is 2s complement
+        if (offset > 0x7f) { 
+            // A negative offset
+            newAddr = (this.registers.pc - (0x100 - offset));
+        } else {
+            // A positive offset
+            newAddr = (this.registers.pc + offset);
+        }
+
+        // console.log(`Branch to ${CPU.dec2hexWord(newAddr)}`);
+        this.registers.pc = newAddr;
+    }
+
 
     /**
      * Push a value onto the stack, and adjust the stack pointer
