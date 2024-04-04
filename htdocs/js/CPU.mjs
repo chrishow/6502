@@ -144,6 +144,25 @@ export class CPU {
                 })();
                 break;
 
+            case 'AND': // AND operand with accumulator
+                (() => {
+                    let operand = {};
+                    let value;
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        if(mode === '#') {
+                            value = operand.value;
+                        } else {
+                            value = this.memory.readByte(operand.value);
+                        }
+                        // console.log(`AND a = ${CPU.dec2hexByte(this.registers.a)}, value = ${CPU.dec2hexByte(value)}`);
+                        this.registers.a = this.registers.a & value;
+                        this.updateFlags(this.registers.a);
+                    });
+                })();
+                break;
+    
             case 'BEQ': // Branch on zero flag = 1
                 this.queueStep(() => {
                     let operand = {};

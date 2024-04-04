@@ -257,9 +257,25 @@ cpu.memory.writeByte(0xBEEF, 0x01);
 cpu.memory.hexLoad(0x0600, 'a9 40 24 01 2c ef be'); // LDA #$40, BIT $01, BIT $BEEF
 cpu.registers.pc = 0x0600;
 cpu.steps(5);
-dumpCpu();
+// dumpCpu();
+assertEquals(cpu.registers.sr.n, 1);
+assertEquals(cpu.registers.sr.v, 1);
 cpu.steps(4);
-dumpCpu();
+assertEquals(cpu.registers.sr.n, 0);
+assertEquals(cpu.registers.sr.v, 0);
+// dumpCpu();
+
+console.log('Test AND');
+cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A'); // LDA #$69, STA $0A, LDA #$96, AND $0A
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.registers.sr.z, 1);
+cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 69 25 0A'); // LDA #$69, STA $0A, LDA #$96, AND $0A
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.registers.sr.z, 0);
+assertEquals(cpu.registers.a, 0x69);
+
 
 
 

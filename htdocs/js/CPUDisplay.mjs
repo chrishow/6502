@@ -128,6 +128,7 @@ export class CPUDisplay extends LitElement {
                 c: 0
             }
         };
+        this.initialPc = null;
 	}
 
     step() {
@@ -149,7 +150,11 @@ export class CPUDisplay extends LitElement {
 
 	// Render the UI as a function of component state
 	render() {
-        const offset = 0xFF00;
+        if (this.initialPc === null) {
+            this.initialPc = this.registers.pc;
+        }
+
+        const offset = this.initialPc;
 
         let memDisplay = [];
         let i, j = 0;
