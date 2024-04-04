@@ -294,6 +294,37 @@ assertEquals(cpu.registers.a, 0xF9);
 assertEquals(cpu.registers.sr.c, 1);
 assertEquals(cpu.memory.readByte(0x0A), 0xF2);
 
+console.log('Test BCC');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 f9 0a 90 01 0a 00'); // LDA #$F9, ASL, BCC #01, ASL, BRK (don't branch)
+cpu.registers.pc = 0x0600;
+cpu.steps(9);
+assertEquals(cpu.registers.a, 0xE4);
+assertEquals(cpu.registers.sr.c, 1);
+
+console.log('Test BCC - 2');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 09 0a 90 01 0a 00'); // LDA #$09, ASL, BCC #01, ASL, BRK (do branch)
+cpu.registers.pc = 0x0600;
+cpu.steps(9);
+assertEquals(cpu.registers.a, 0x12);
+assertEquals(cpu.registers.sr.c, 0);
+
+console.log('Test BCS');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 f9 0a b0 01 0a 00'); // LDA #$F9, ASL, BCS #01, ASL, BRK (do branch)
+cpu.registers.pc = 0x0600;
+cpu.steps(9);
+assertEquals(cpu.registers.a, 0xF2);
+assertEquals(cpu.registers.sr.c, 1);
+
+console.log('Test BCS - 2');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 09 0a b0 01 0a 00'); // LDA #$09, ASL, BCS #01, ASL, BRK (don't branch)
+cpu.registers.pc = 0x0600;
+cpu.steps(9);
+assertEquals(cpu.registers.a, 0x24);
+assertEquals(cpu.registers.sr.c, 0);
 
 
 

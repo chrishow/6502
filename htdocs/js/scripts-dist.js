@@ -1164,6 +1164,26 @@
               });
             }
           })();
+        case "BCC":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            if (this.registers.sr.c === 1) {
+              return;
+            }
+            this.doBranch(operand.value);
+          });
+          break;
+        case "BCS":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            if (this.registers.sr.c === 0) {
+              return;
+            }
+            this.doBranch(operand.value);
+          });
+          break;
         case "BEQ":
           this.queueStep(() => {
             let operand = {};

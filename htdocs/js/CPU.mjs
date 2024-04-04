@@ -189,6 +189,32 @@ export class CPU {
                 }
             })();
 
+            case 'BCC': // Branch on carry clear
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.c === 1) { // Carry flag is set, don't branch
+                        return;
+                    } 
+
+                    this.doBranch(operand.value);                    
+                });
+                break;
+
+            case 'BCS': // Branch on carry set
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.c === 0) { // Carry flag is clear, don't branch
+                        return;
+                    } 
+
+                    this.doBranch(operand.value);                    
+                });
+                break;
+
             case 'BEQ': // Branch on zero flag = 1
                 this.queueStep(() => {
                     let operand = {};
