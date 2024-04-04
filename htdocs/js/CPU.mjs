@@ -162,7 +162,33 @@ export class CPU {
                     });
                 })();
                 break;
-    
+
+            case 'ASL': // Arithmetic shift left
+            (() => {
+                let operand = {};
+                let value;
+                this.getOperand(mode, operand);
+
+                if(mode === 'A') { // Do it to accumulator
+                    this.queueStep(() => {
+                        this.registers.sr.c = this.registers.a >= 0x80 ? 1 : 0;
+                        this.registers.a = (this.registers.a << 1) & 0xff;
+                        this.updateFlags(this.registers.a);
+                    });
+                } else {
+                    this.queueStep(() => {
+                        value = this.memory.readByte(operand.value);
+                    });
+
+                    this.queueStep(() => {
+                        this.registers.sr.c = value >= 0x80 ? 1 : 0;
+                        value = (value << 1) & 0xff;
+                        this.memory.writeByte(operand.value, value);
+                        this.updateFlags(value);
+                    });
+                }
+            })();
+
             case 'BEQ': // Branch on zero flag = 1
                 this.queueStep(() => {
                     let operand = {};
@@ -607,6 +633,10 @@ export class CPU {
         switch(mode) {
             case '#': // Direct
                 operand.value = this.popByte();
+                break;
+
+            case 'A': // Accumulator mode, used for some bit operations
+                operand.value = null;
                 break;
 
             case 'REL': // Relative

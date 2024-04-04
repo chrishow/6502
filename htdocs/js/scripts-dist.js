@@ -1141,6 +1141,29 @@
             });
           })();
           break;
+        case "ASL":
+          (() => {
+            let operand = {};
+            let value;
+            this.getOperand(mode, operand);
+            if (mode === "A") {
+              this.queueStep(() => {
+                this.registers.sr.c = this.registers.a >= 128 ? 1 : 0;
+                this.registers.a = this.registers.a << 1 & 255;
+                this.updateFlags(this.registers.a);
+              });
+            } else {
+              this.queueStep(() => {
+                value = this.memory.readByte(operand.value);
+              });
+              this.queueStep(() => {
+                this.registers.sr.c = value >= 128 ? 1 : 0;
+                value = value << 1 & 255;
+                this.memory.writeByte(operand.value, value);
+                this.updateFlags(value);
+              });
+            }
+          })();
         case "BEQ":
           this.queueStep(() => {
             let operand = {};
@@ -1465,6 +1488,9 @@
       switch (mode) {
         case "#":
           operand.value = this.popByte();
+          break;
+        case "A":
+          operand.value = null;
           break;
         case "REL":
           operand.value = this.popByte();

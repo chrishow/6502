@@ -266,15 +266,33 @@ assertEquals(cpu.registers.sr.v, 0);
 // dumpCpu();
 
 console.log('Test AND');
+cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A'); // LDA #$69, STA $0A, LDA #$96, AND $0A
 cpu.registers.pc = 0x0600;
 cpu.steps(10);
+assertEquals(cpu.registers.a, 0x00);
 assertEquals(cpu.registers.sr.z, 1);
 cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 69 25 0A'); // LDA #$69, STA $0A, LDA #$96, AND $0A
 cpu.registers.pc = 0x0600;
 cpu.steps(10);
 assertEquals(cpu.registers.sr.z, 0);
 assertEquals(cpu.registers.a, 0x69);
+
+console.log('Test ASL');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'A9 F9 0A'); // LDA #$69, ASL
+cpu.registers.pc = 0x0600;
+cpu.steps(4);
+assertEquals(cpu.registers.a, 0xF2);
+assertEquals(cpu.registers.sr.c, 1);
+
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 f9 85 0a 06 0a'); // LDA #$F9, STA $0A, ASL $0A
+cpu.registers.pc = 0x0600;
+cpu.steps(9);
+assertEquals(cpu.registers.a, 0xF9);
+assertEquals(cpu.registers.sr.c, 1);
+assertEquals(cpu.memory.readByte(0x0A), 0xF2);
 
 
 
