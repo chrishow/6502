@@ -317,6 +317,7 @@ cpu.registers.pc = 0x0600;
 cpu.steps(9);
 assertEquals(cpu.registers.a, 0xF2);
 assertEquals(cpu.registers.sr.c, 1);
+assertEquals(cpu.registers.sr.n, 1);
 
 console.log('Test BCS - 2');
 cpu = new CPU;
