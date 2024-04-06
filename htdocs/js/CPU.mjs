@@ -284,22 +284,48 @@ export class CPU {
                 break;
 
             case 'BPL': // Branch on positive
-                    this.queueStep(() => {
-                        let operand = {};
-                        this.getOperand(mode, operand);
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
 
-                        if(this.registers.sr.n === 1) { // Negative flag set, don't branch
-                            // console.log(`BEQ,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
-                            return;
-                        } 
+                    if(this.registers.sr.n === 1) { // Negative flag set, don't branch
+                        // console.log(`BEQ,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
+                        return;
+                    } 
 
-                        this.doBranch(operand.value);                    
-                    });
-                    break;
+                    this.doBranch(operand.value);                    
+                });
+                break;
 
             case 'BRK': // This isn't actually what the 6502 does, we will just stop the program for now
                 this.stop();
                 break;
+
+                case 'BVC': // Branch on overflow clear
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.v === 1) { // Overflow flag set, don't branch
+                        return;
+                    } 
+
+                    this.doBranch(operand.value);                    
+                });
+            break;
+
+            case 'BVS': // Branch on overflow set
+                this.queueStep(() => {
+                    let operand = {};
+                    this.getOperand(mode, operand);
+
+                    if(this.registers.sr.v === 0) { // Overflow flag clear, don't branch
+                        return;
+                    } 
+
+                    this.doBranch(operand.value);                    
+                });
+            break;
 
             case 'CLC': // Clear carry flag
                 this.queueStep(() => {
@@ -319,6 +345,12 @@ export class CPU {
                 });
                 break;
 
+            case 'CLV': // Clear Overflow flag
+                this.queueStep(() => {
+                    this.registers.sr.v = 0;
+                });
+                break;
+
             case 'CMP': // Compare a, or a - operand
                 this.compareRegister('a', mode);
                 break;
@@ -331,6 +363,10 @@ export class CPU {
                 this.compareRegister('y', mode);
                 break;
 
+            case 'DEC': // Decrement memory
+                // TODO
+                break; 
+
             case 'DEX': // Decrement X
                 this.queueStep(() => {
                     this.registers.x = (this.registers.x - 1) & 0xFF;
@@ -338,6 +374,21 @@ export class CPU {
                 });
                 break;
 
+            case 'DEY': // Decrement Y
+                this.queueStep(() => {
+                    this.registers.y = (this.registers.y - 1) & 0xFF;
+                    this.updateFlags(this.registers.y);
+                });
+                break;
+
+            case 'EOR': // Exclusive-OR Memory with Accumulator
+                // TODO
+                break;
+
+            case 'INC': // Increment memory
+                // TODO
+                break;
+                
             case 'INX': // Increment X
                 this.queueStep(() => {
                     this.registers.x = (this.registers.x + 1) & 0xFF;
@@ -408,6 +459,15 @@ export class CPU {
                 this.loadRegister('y', mode);
                 break;
 
+            case 'NOP': // No Operation
+                this.queueStep(() => {
+                });
+                break;
+            
+            case 'ORA': // OR Memory with Accumulator
+                // TODO
+                break;
+
             case 'PHA': // Push a onto stack
                 // This takes three cycles total, so need to use two here
                 this.queueStep(() => {
@@ -417,6 +477,10 @@ export class CPU {
                 });
                 break;
 
+            case 'PHP': // Push Processor Status on Stack
+                // TODO
+                break;
+
             case 'PLA': // Pull from stack onto a
                 // This takes three cycles total, so need to use two here
                 this.queueStep(() => {
@@ -424,6 +488,22 @@ export class CPU {
                 this.queueStep(() => {
                     this.registers.a = this.pullFromStack();
                 });
+                break;
+
+            case 'PLP': // Pull Processor Status from Stack
+                // TODO
+                break;
+
+            case 'ROL': // Rotate One Bit Left (Memory or Accumulator)
+                // TODO
+                break;
+                
+            case 'ROR': // Rotate One Bit Right (Memory or Accumulator)
+                // TODO
+                break;
+                
+            case 'RTI': // Return from Interrupt
+                // TODO
                 break;
 
             case 'RTS': // Return from subroutine
@@ -447,8 +527,26 @@ export class CPU {
                     this.registers.pc = (returnAddressLowByte + (returnAddressHighByte << 8) + 1);
                 });
 
+                break;
+            
+            case 'SBC': // Subtract Memory from Accumulator with Borrow
+                // TODO
+                break;      
                 
+            case 'SEC': // Set carry flag
+                this.queueStep(() => { 
+                    this.registers.sr.c = 1;
+                });
+                break;
 
+            case 'SED': // Set decimal flag
+                this.queueStep(() => { 
+                    this.registers.sr.d = 1;
+                });
+                break;
+            
+            case 'SEI': // Set Interrupt Disable Status
+                // TODO
                 break;
 
             case 'STA': // Store Accumulator in Memory
@@ -462,7 +560,6 @@ export class CPU {
             case 'STY': // Store y in Memory
                 this.storeRegister('y', mode);
                 break;
-
 
             case 'TAX': // Transfer ac to x
                 this.queueStep(() => {
@@ -502,6 +599,14 @@ export class CPU {
 
                 });
             break;
+
+            case 'TYA': // Transfer y to a
+                this.queueStep(() => {
+                    this.registers.a = this.registers.y;
+
+                    this.updateFlags(this.registers.a);
+                });
+                break;
 
             default:
                 console.error(`Unknown instruction ${instruction}`);                
