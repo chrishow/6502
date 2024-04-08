@@ -1476,7 +1476,7 @@
               });
               this.queueStep(() => {
                 const saveCarry = this.registers.sr.c;
-                this.registers.sr.c = input & 1 << 6 ? 1 : 0;
+                this.registers.sr.c = input & 1 << 7 ? 1 : 0;
                 input = input << 1 & 255;
                 input |= saveCarry;
                 this.memory.writeByte(operand.value, input);
@@ -1486,6 +1486,38 @@
           })();
           break;
         case "ROR":
+          (() => {
+            let operand = {};
+            let input;
+            this.getOperand(mode, operand);
+            if (mode === "A") {
+              this.queueStep(() => {
+                input = this.registers.a;
+                const saveCarry = this.registers.sr.c;
+                this.registers.sr.c = input & 1 << 0 ? 1 : 0;
+                input = input >> 1;
+                if (saveCarry) {
+                  input |= 128;
+                }
+                this.registers.a = input;
+                this.updateFlags(this.registers.a);
+              });
+            } else {
+              this.queueStep(() => {
+                input = this.memory.readByte(operand.value);
+              });
+              this.queueStep(() => {
+                const saveCarry = this.registers.sr.c;
+                this.registers.sr.c = input & 1 << 0 ? 1 : 0;
+                input = input >> 1;
+                if (saveCarry) {
+                  input |= 128;
+                }
+                this.memory.writeByte(operand.value, input);
+                this.updateFlags(input);
+              });
+            }
+          })();
           break;
         case "RTI":
           break;

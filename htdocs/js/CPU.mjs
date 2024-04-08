@@ -603,7 +603,7 @@ export class CPU {
                             // Save carry
                             const saveCarry = this.registers.sr.c;
                             // Set carry from bit 7 of input
-                            this.registers.sr.c = (input & (1<< 6)) ? 1 : 0;
+                            this.registers.sr.c = (input & (1 << 7)) ? 1 : 0;
                             // Rotate
                             input = (input << 1) & 0xff;
                             // Rotate in old carry at bit 0
@@ -618,7 +618,49 @@ export class CPU {
             break;
                 
             case 'ROR': // Rotate One Bit Right (Memory or Accumulator)
-                // TODO
+                (() => {
+                    let operand = {};
+                    let input;
+                    this.getOperand(mode, operand);
+
+                    if(mode === 'A') { // Do it to accumulator
+                        this.queueStep(() => {
+                            input = this.registers.a;
+
+                            // Save carry
+                            const saveCarry = this.registers.sr.c;
+                            // Set carry from bit 1 of input
+                            this.registers.sr.c = (input & (1 << 0)) ? 1 : 0;
+                            // Rotate
+                            input = input >> 1;
+                            // Rotate in old carry at bit 8
+                            if (saveCarry) { input |= 0x80; }
+                            // Save back into a 
+                            this.registers.a = input;
+                            // Update flags
+                            this.updateFlags(this.registers.a);
+                        });
+                    } else {
+                        this.queueStep(() => {
+                            input = this.memory.readByte(operand.value);
+                        });
+
+                        this.queueStep(() => {
+                            // Save carry
+                            const saveCarry = this.registers.sr.c;
+                            // Set carry from bit 1 of input
+                            this.registers.sr.c = (input & (1 << 0)) ? 1 : 0;
+                            // Rotate
+                            input = input >> 1;
+                            // Rotate in old carry at bit 8
+                            if (saveCarry) { input |= 0x80; }
+                            // Save back into memory 
+                            this.memory.writeByte(operand.value, input)
+                            // Update flags
+                            this.updateFlags(input);
+                        });
+                    }
+                })();
                 break;
                 
             case 'RTI': // Return from Interrupt
