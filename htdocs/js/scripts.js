@@ -35,7 +35,11 @@ document.addEventListener("DOMContentLoaded", function () {
 	// cpu.registers.pc = 0xFF00; 
 
 	// AND
-	cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A');
+	// cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A');
+
+	// PHP
+	cpu.memory.hexLoad(0x0600, '08');
+
 	cpu.registers.pc = 0x0600; 
 	
 	

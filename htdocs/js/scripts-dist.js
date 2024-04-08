@@ -1429,6 +1429,14 @@
           });
           break;
         case "PHP":
+          this.queueStep(() => {
+          });
+          this.queueStep(() => {
+            let flagsByte = this.flagsToByte();
+            console.log(`Flags as byte: ${flagsByte}`);
+            this.pushToStack(flagsByte);
+          });
+          break;
           break;
         case "PLA":
           this.queueStep(() => {
@@ -1536,6 +1544,38 @@
         newAddr = this.registers.pc + offset;
       }
       this.registers.pc = newAddr;
+    }
+    /**
+     * Convert status flags to a byte
+     * @returns int byte;
+     */
+    flagsToByte() {
+      let byte = 0;
+      if (this.registers.sr.c === 1) {
+        byte += 1;
+      }
+      if (this.registers.sr.z === 1) {
+        byte += 2;
+      }
+      if (this.registers.sr.i === 1) {
+        byte += 4;
+      }
+      if (this.registers.sr.d === 1) {
+        byte += 8;
+      }
+      if (this.registers.sr.b === 1) {
+        byte += 16;
+      }
+      if (1) {
+        byte += 32;
+      }
+      if (this.registers.sr.v === 1) {
+        byte += 64;
+      }
+      if (this.registers.sr.n === 1) {
+        byte += 128;
+      }
+      return byte;
     }
     /**
      * Push a value onto the stack, and adjust the stack pointer
@@ -1899,7 +1939,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "A9 69 85 0A A9 96 25 0A");
+    cpu.memory.hexLoad(1536, "08");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

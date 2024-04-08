@@ -539,7 +539,16 @@ export class CPU {
                 break;
 
             case 'PHP': // Push Processor Status on Stack
-                // TODO
+                // This takes three cycles total, so need to use two here
+                this.queueStep(() => {
+                });
+                this.queueStep(() => {
+                    let flagsByte = this.flagsToByte();
+                    console.log(`Flags as byte: ${flagsByte}`);
+                    this.pushToStack(flagsByte);
+                });
+                break;
+                
                 break;
 
             case 'PLA': // Pull from stack onto a
@@ -696,6 +705,48 @@ export class CPU {
         this.registers.pc = newAddr;
     }
 
+    /**
+     * Convert status flags to a byte
+     * @returns int byte;
+     */
+    flagsToByte() {
+        let byte = 0;
+
+        if(this.registers.sr.c === 1) {
+            byte += 1;
+        }
+
+        if(this.registers.sr.z === 1) {
+            byte += 2;
+        }
+
+        if(this.registers.sr.i === 1) {
+            byte += 4;
+        }
+
+        if(this.registers.sr.d === 1) {
+            byte += 8;
+        }
+
+        if(this.registers.sr.b === 1) {
+            byte += 16;
+        }
+
+        if(1) {  // '-' flag, always set
+            byte += 32;
+        }
+
+        if(this.registers.sr.v === 1) {
+            byte += 64;
+        }
+
+        if(this.registers.sr.n === 1) {
+            byte += 128;
+        }
+
+
+        return byte;
+    }
 
     /**
      * Push a value onto the stack, and adjust the stack pointer
