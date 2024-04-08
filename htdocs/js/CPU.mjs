@@ -544,13 +544,11 @@ export class CPU {
                 });
                 this.queueStep(() => {
                     let flagsByte = this.flagsToByte();
-                    console.log(`Flags as byte: ${flagsByte}`);
+                    flagsByte = flagsByte | 16; // Break flag is always set for this instruction
                     this.pushToStack(flagsByte);
                 });
                 break;
                 
-                break;
-
             case 'PLA': // Pull from stack onto a
                 // This takes three cycles total, so need to use two here
                 this.queueStep(() => {
@@ -561,7 +559,15 @@ export class CPU {
                 break;
 
             case 'PLP': // Pull Processor Status from Stack
-                // TODO
+                // This takes three cycles total, so need to use two here
+                this.queueStep(() => {
+                });
+                this.queueStep(() => {
+                    const currentBreak = this.registers.sr.b; // Need to 'ignore' break for this instruction
+                    let flagsByte = this.pullFromStack();
+                    this.byteToFlags(flagsByte);
+                    this.registers.sr.b = currentBreak;
+                });
                 break;
 
             case 'ROL': // Rotate One Bit Left (Memory or Accumulator)
@@ -746,6 +752,21 @@ export class CPU {
 
 
         return byte;
+    }
+
+    /**
+     * Decodes byte to status flags and sets the flags
+     * @param {*} byte 
+     */
+    byteToFlags(byte) {
+        this.registers.sr.n = (byte & 128) ? 1 : 0;
+        this.registers.sr.v = (byte & 64) ? 1 : 0;
+        // - flag at position 32
+        this.registers.sr.b = (byte & 16) ? 1 : 0;
+        this.registers.sr.d = (byte & 8) ? 1 : 0;
+        this.registers.sr.i = (byte & 4) ? 1 : 0;
+        this.registers.sr.z = (byte & 2) ? 1 : 0;
+        this.registers.sr.c = (byte & 1) ? 1 : 0;
     }
 
     /**
