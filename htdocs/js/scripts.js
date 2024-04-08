@@ -37,8 +37,8 @@ document.addEventListener("DOMContentLoaded", function () {
 	// AND
 	// cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A');
 
-	// PHP
-	cpu.memory.hexLoad(0x0600, '08');
+	// County thing
+	cpu.memory.hexLoad(0x0600, 'a9 00 8d ff 00 a2 00 e8 8a 9d ff 00 e0 ff d0 f7 ca f0 f4 8a e9 0f 9d ff 00 4c 10 06');
 
 	cpu.registers.pc = 0x0600; 
 	

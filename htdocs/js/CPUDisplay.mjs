@@ -175,7 +175,7 @@ export class CPUDisplay extends LitElement {
         const stackTop = 0x1FF;
         let stackDisplay = [];
         j = 0;
-        for(i = 0; i < 4; i++) { // lines
+        for(i = 0; i < 8; i++) { // lines
             stackDisplay.push(html`0x${CPUDisplay.formatWord(stackTop - ((i*8)+j))}: `);
             for(j = 0; j < 8; j++) {
                 let addr = stackTop - ((i*8)+j);

@@ -781,7 +781,7 @@
       const stackTop = 511;
       let stackDisplay = [];
       j2 = 0;
-      for (i4 = 0; i4 < 4; i4++) {
+      for (i4 = 0; i4 < 8; i4++) {
         stackDisplay.push(x`0x${_CPUDisplay.formatWord(stackTop - (i4 * 8 + j2))}: `);
         for (j2 = 0; j2 < 8; j2++) {
           let addr = stackTop - (i4 * 8 + j2);
@@ -1894,6 +1894,19 @@
             });
           })();
           break;
+        case "ABSX":
+          (() => {
+            let lowByte, highByte;
+            this.queueStep(() => {
+              lowByte = this.popByte();
+            });
+            this.queueStep(() => {
+              highByte = this.popByte();
+              const addr = lowByte + (highByte << 8) + this.registers.x;
+              operand.value = addr;
+            });
+          })();
+          break;
         case "ABSY":
           (() => {
             let lowByte, highByte;
@@ -2140,7 +2153,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "08");
+    cpu.memory.hexLoad(1536, "a9 00 8d ff 00 a2 00 e8 8a 9d ff 00 e0 ff d0 f7 ca f0 f4 8a e9 0f 9d ff 00 4c 10 06");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();
