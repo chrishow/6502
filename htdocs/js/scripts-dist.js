@@ -1520,22 +1520,44 @@
           })();
           break;
         case "RTI":
+          (() => {
+            let flagsByte, returnAddressLowByte, returnAddressHighByte;
+            this.queueStep(() => {
+              flagsByte = this.pullFromStack();
+            });
+            this.queueStep(() => {
+              returnAddressLowByte = this.pullFromStack();
+            });
+            this.queueStep(() => {
+              returnAddressHighByte = this.pullFromStack();
+            });
+            this.queueStep(() => {
+            });
+            this.queueStep(() => {
+              const currentBreak = this.registers.sr.b;
+              this.byteToFlags(flagsByte);
+              this.registers.sr.b = currentBreak;
+              this.registers.pc = returnAddressLowByte + (returnAddressHighByte << 8) + 1;
+            });
+          })();
           break;
         case "RTS":
-          let returnAddressLowByte, returnAddressHighByte;
-          this.queueStep(() => {
-            return returnAddressLowByte = this.pullFromStack();
-          });
-          this.queueStep(() => {
-            return returnAddressHighByte = this.pullFromStack();
-          });
-          this.queueStep(() => {
-          });
-          this.queueStep(() => {
-          });
-          this.queueStep(() => {
-            this.registers.pc = returnAddressLowByte + (returnAddressHighByte << 8) + 1;
-          });
+          (() => {
+            let returnAddressLowByte, returnAddressHighByte;
+            this.queueStep(() => {
+              returnAddressLowByte = this.pullFromStack();
+            });
+            this.queueStep(() => {
+              returnAddressHighByte = this.pullFromStack();
+            });
+            this.queueStep(() => {
+            });
+            this.queueStep(() => {
+            });
+            this.queueStep(() => {
+              this.registers.pc = returnAddressLowByte + (returnAddressHighByte << 8) + 1;
+            });
+          })();
           break;
         case "SBC":
           break;

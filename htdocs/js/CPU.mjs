@@ -664,30 +664,57 @@ export class CPU {
                 break;
                 
             case 'RTI': // Return from Interrupt
-                // TODO
-                break;
+                (() => {
+                    let flagsByte, returnAddressLowByte, returnAddressHighByte;
+
+                    this.queueStep(() => { // Clock cycle 2
+                        flagsByte = this.pullFromStack();
+                    });
+
+                    this.queueStep(() => { // Clock cycle 3
+                        returnAddressLowByte = this.pullFromStack();
+                    });
+
+                    this.queueStep(() => { // Clock cycle 4
+                        returnAddressHighByte = this.pullFromStack();
+                    });
+
+                    this.queueStep(() => { // Clock cycle 5
+                    });
+
+                    this.queueStep(() => { // Clock cycle 6
+                        const currentBreak = this.registers.sr.b; // Need to 'ignore' break for this instruction
+                        this.byteToFlags(flagsByte);
+                        this.registers.sr.b = currentBreak;
+    
+                        this.registers.pc = (returnAddressLowByte + (returnAddressHighByte << 8) + 1);
+                    });
+                })();
+            break;
 
             case 'RTS': // Return from subroutine
-                let returnAddressLowByte, returnAddressHighByte;
+                (() => {
+                    let returnAddressLowByte, returnAddressHighByte;
 
-                this.queueStep(() => { // Clock cycle 2
-                    return returnAddressLowByte = this.pullFromStack();
-                });
+                    this.queueStep(() => { // Clock cycle 2
+                        returnAddressLowByte = this.pullFromStack();
+                    });
 
-                this.queueStep(() => { // Clock cycle 3
-                    return returnAddressHighByte = this.pullFromStack();
-                });
+                    this.queueStep(() => { // Clock cycle 3
+                        returnAddressHighByte = this.pullFromStack();
+                    });
 
-                this.queueStep(() => { // Clock cycle 4
-                });
+                    this.queueStep(() => { // Clock cycle 4
+                    });
 
-                this.queueStep(() => { // Clock cycle 5
-                });
+                    this.queueStep(() => { // Clock cycle 5
+                    });
 
-                this.queueStep(() => { // Clock cycle 3
-                    this.registers.pc = (returnAddressLowByte + (returnAddressHighByte << 8) + 1);
-                });
+                    this.queueStep(() => { // Clock cycle 6
+                        this.registers.pc = (returnAddressLowByte + (returnAddressHighByte << 8) + 1);
+                    });
 
+                })();
                 break;
             
             case 'SBC': // Subtract Memory from Accumulator with Borrow
