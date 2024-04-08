@@ -404,8 +404,23 @@ export class CPU {
                 break;
 
             case 'INC': // Increment memory
-                // TODO
-                break;
+                (() => {
+                    let operand = {}, currentValue;
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        currentValue = this.memory.readByte(operand.value);
+
+                    });
+
+                    this.queueStep(() => {
+                        currentValue = (currentValue + 1) & 0xFF;
+                        this.memory.writeByte(operand.value, currentValue);
+                        this.updateFlags(currentValue);
+                    });
+
+                })()
+            break;
                 
             case 'INX': // Increment X
                 this.queueStep(() => {

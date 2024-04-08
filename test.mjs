@@ -336,6 +336,15 @@ assertEquals(cpu.registers.x, 0x68);
 assertEquals(cpu.registers.sr.c, 0);
 assertEquals(cpu.registers.sr.n, 0);
 
+console.log('Test INC');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 69 8d 00 02 ee 00 02 ae 00 02'); // LDA #$69, STA $0200, INC $0200, LDX $0200
+cpu.registers.pc = 0x0600;
+cpu.steps(15);
+assertEquals(cpu.registers.x, 0x6A);
+assertEquals(cpu.registers.sr.c, 0);
+assertEquals(cpu.registers.sr.n, 0);
+
 
 
 

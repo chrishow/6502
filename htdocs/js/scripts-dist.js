@@ -1325,6 +1325,18 @@
         case "EOR":
           break;
         case "INC":
+          (() => {
+            let operand = {}, currentValue;
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              currentValue = this.memory.readByte(operand.value);
+            });
+            this.queueStep(() => {
+              currentValue = currentValue + 1 & 255;
+              this.memory.writeByte(operand.value, currentValue);
+              this.updateFlags(currentValue);
+            });
+          })();
           break;
         case "INX":
           this.queueStep(() => {
