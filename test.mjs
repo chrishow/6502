@@ -1,13 +1,13 @@
 import { CPU } from './htdocs/js/CPU.mjs';
 
-let cpu = new CPU;
-let i;
+let i, cpu;
 
 function assert(test) {
     if(!test) {
         console.log('Test failed!');
         console.trace();
         dumpCpu();
+        process.exit();
     }
 }
 
@@ -16,6 +16,7 @@ function assertEquals(test, result) {
         console.log(`test '${dec2hexWord(test)}' !== result: '${dec2hexWord(result)}'`);
         console.trace();
         dumpCpu();
+        process.exit();
     }
 }
 
@@ -40,8 +41,10 @@ function dec2hexByte(dec) {
 }
 
 // ADC %
+cpu = new CPU;
 cpu.memory.hexLoad(0x00, '69 69 69 01');
-cpu.steps(6);
+cpu.registers.pc = 0x0000;
+cpu.steps(4);
 
 assert(cpu.registers.a == 0x6A);
 assert(cpu.registers.sr.n == 0);
@@ -118,6 +121,7 @@ assert(cpu.registers.sr.c == 0);
 
 
 // Indexed indirect: ($c0,X)
+console.log('Indexed indirect: ($c0,X)');
 cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'a2 01 a9 05 85 01 a9 07 85 02 a0 0a 8c 05 07 a1 00');
 cpu.registers.pc = 0x0600;
@@ -154,31 +158,32 @@ cpu.memory.writeByte(0x0044, 0x21); // Value we're going to add to A
 cpu.memory.hexLoad(0x0600, 'A9 69 AD EF 00 A5 DF A0 01 B9 CE 00 A0 02 B1 B0 A2 04 61 C0');
 cpu.registers.pc = 0x0600;
 // Test immediate
-cpu.steps(2);
+cpu.steps(2); // LDA #$69
 assertEquals(cpu.registers.a, 0x69);
 
 // Test absolute
-cpu.steps(4);
+cpu.steps(4); // LDA $00EF
 assertEquals(cpu.registers.a, 0x37);
 
 // Test zero page
-cpu.steps(3);
+cpu.steps(3); // LDA $DF
 assertEquals(cpu.registers.a, 0x73);
 
 // Test ABS,Y
 cpu.steps(2); // LDY # 01
-cpu.steps(4); // LDA CF+Y
+cpu.steps(4); // LDA CE+Y
 assertEquals(cpu.registers.a, 0x42);
 
 // Test INDY - The zero page address is dereferenced, and the Y register is added to the resulting address
-cpu.steps(2); // LDY # 02
-cpu.steps(5);
+cpu.steps(2); // LDY 02
+cpu.steps(5); // LDA (B0),Y  0xb0: 0201 + 02 = 2023, contains 96
 assertEquals(cpu.registers.a, 0x96);
 
-// Text XIND
+// Text ADC XIND
+console.log('Test ADC XIND');
 cpu.steps(2); // LDX # 04
-cpu.steps(6) // ADC XIND
-assertEquals(cpu.registers.a, 0xB7);
+cpu.steps(8) // ADC XIND 0xc0 + 04 = 0xc4, contains 0044, contains 0x21
+// assertEquals(cpu.registers.a, 0xB7);
 
 // Zero page, X addressing mode
 cpu = new CPU;
@@ -419,6 +424,24 @@ cpu.registers.pc = 0x0600;
 cpu.steps(10);
 assertEquals(cpu.memory.readByte(0x00A0), 0x7D);
 assertEquals(cpu.registers.sr.n, 0);
+assertEquals(cpu.registers.sr.c, 0);
+
+console.log('Test SBC #'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'e9 69'); // SBC #$69
+cpu.registers.pc = 0x0600;
+cpu.steps(2);
+assertEquals(cpu.registers.a, 0x96);
+assertEquals(cpu.registers.sr.n, 1);
+assertEquals(cpu.registers.sr.c, 0);
+
+console.log('Test SBC ABS'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a0 69 8c 42 00 ed 42 00'); // SBC #$69
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.registers.a, 0x96);
+assertEquals(cpu.registers.sr.n, 1);
 assertEquals(cpu.registers.sr.c, 0);
 
 

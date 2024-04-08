@@ -1105,22 +1105,56 @@
         case "ADC":
           (() => {
             let operand = {};
+            let value;
             if (mode !== "#") {
               this.getOperand(mode, operand);
             }
             this.queueStep(() => {
+              let sum;
               if (mode === "#") {
                 this.getOperand(mode, operand);
-                this.registers.a += operand.value;
+                value = operand.value;
               } else {
-                this.registers.a += this.memory.readByte(operand.value);
+                value = this.memory.readByte(operand.value);
               }
-              if (this.registers.a > 255) {
-                this.registers.a -= 256;
-                this.registers.sr.c = 1;
+              if ((this.registers.a ^ value) & 128) {
+                this.registers.sr.v = 0;
               } else {
-                this.registers.sr.c = 0;
+                this.registers.sr.v = 1;
               }
+              if (this.registers.sr.d) {
+                sum = (this.registers.a & 15) + (value & 15) + this.registers.sr.c;
+                if (sum >= 10) {
+                  sum = 16 | sum + 6 & 15;
+                }
+                sum += (this.registers.a & 240) + (value & 240);
+                if (sum >= 160) {
+                  this.registers.sr.c = 1;
+                  if (this.registers.sr.v && sum >= 384) {
+                    this.registers.sr.v = 0;
+                  }
+                  sum += 96;
+                } else {
+                  this.registers.sr.c = 0;
+                  if (this.registers.sr.v && sum < 128) {
+                    this.registers.sr.v = 0;
+                  }
+                }
+              } else {
+                sum = this.registers.a + value + this.registers.sr.c;
+                if (sum >= 256) {
+                  this.registers.sr.c = 1;
+                  if (this.registers.sr.v && sum >= 384) {
+                    this.registers.sr.v = 0;
+                  }
+                } else {
+                  this.registers.sr.c = 0;
+                  if (this.registers.sr.v && sum < 128) {
+                    this.registers.sr.v = 0;
+                  }
+                }
+              }
+              this.registers.a = sum & 255;
               this.updateFlags(this.registers.a);
             });
           })();
@@ -1560,6 +1594,66 @@
           })();
           break;
         case "SBC":
+          (() => {
+            let operand = {};
+            let value;
+            if (mode !== "#") {
+              this.getOperand(mode, operand);
+            }
+            this.queueStep(() => {
+              let result, temp;
+              if (mode === "#") {
+                this.getOperand(mode, operand);
+                value = operand.value;
+              } else {
+                value = this.memory.readByte(operand.value);
+              }
+              if ((this.registers.a ^ value) & 128) {
+                this.registers.sr.v = 1;
+              } else {
+                this.registers.sr.v = 0;
+              }
+              if (this.registers.sr.d) {
+                temp = 15 + (this.registers.a & 15) - (value & 15) + this.registers.sr.c;
+                if (temp < 16) {
+                  result = 0;
+                  temp -= 6;
+                } else {
+                  result = 16;
+                  temp -= 16;
+                }
+                result += 240 + (this.registers.a & 240) - (value & 240);
+                if (result < 256) {
+                  this.registers.sr.c = 0;
+                  if (this.registers.sr.v && result < 128) {
+                    this.registers.sr.v = 0;
+                  }
+                  result -= 96;
+                } else {
+                  this.registers.sr.c = 1;
+                  if (this.registers.sr.v && result >= 384) {
+                    this.registers.sr.v = 0;
+                  }
+                }
+                result += temp;
+              } else {
+                result = 255 + this.registers.a - value + this.registers.sr.c;
+                if (result < 256) {
+                  this.registers.sr.c = 0;
+                  if (this.registers.sr.v && result < 128) {
+                    this.registers.sr.v = 0;
+                  }
+                } else {
+                  this.registers.sr.c = 1;
+                  if (this.registers.sr.v && result >= 384) {
+                    this.registers.sr.v = 0;
+                  }
+                }
+              }
+              this.registers.a = result & 255;
+              this.updateFlags(this.registers.a);
+            });
+          })();
           break;
         case "SEC":
           this.queueStep(() => {
@@ -1888,6 +1982,7 @@
             this.queueStep(() => {
               highByte = this.memory.readByte(srcAddr + 1);
               const finalAddress = lowByte + (highByte << 8);
+              console.log(`XIND finalAddress: ${_CPU.dec2hexWord(finalAddress)}`);
               operand.value = finalAddress;
             });
           })();

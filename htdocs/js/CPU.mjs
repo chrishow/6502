@@ -117,27 +117,58 @@ export class CPU {
             case 'ADC': // Add Memory to Accumulator with Carry
                 (() => {
                     let operand = {}; // We use an object, so it is passed by reference
+                    let value;
 
                     if(mode !== '#') {
                         this.getOperand(mode, operand);
                     }
 
                     this.queueStep(() => {
+                        let sum;
+
                         if(mode === '#') {
                             this.getOperand(mode, operand);
-                            this.registers.a += operand.value;
+                            value = operand.value;
                         } else {
-                            this.registers.a += this.memory.readByte(operand.value);
+                            value = this.memory.readByte(operand.value);
                         }
 
-    
-                        if(this.registers.a > 0xFF) {
-                            this.registers.a -= 0x100;
-                            this.registers.sr.c = 1;
+                        // console.log(`value: ${CPU.dec2hexByte(operand.value)}, mode: ${mode}`);
+
+                        if ((this.registers.a ^ value) & 0x80) {
+                            this.registers.sr.v = 0;
                         } else {
-                            this.registers.sr.c = 0;
+                            this.registers.sr.v = 1;
                         }
-                
+
+                        if (this.registers.sr.d) { // Decimal mode
+                            sum = (this.registers.a & 0xf) + (value & 0xf) + this.registers.sr.c;
+                            if (sum >= 10) {
+                                sum = 0x10 | ((sum + 6) & 0xf);
+                            }
+
+                            sum += (this.registers.a & 0xf0) + (value & 0xf0);
+                            if (sum >= 160) {
+                                this.registers.sr.c = 1;
+                                if (this.registers.sr.v && sum >= 0x180) { this.registers.sr.v = 0; }
+                                sum += 0x60;
+                            } else {
+                                this.registers.sr.c = 0;
+                                if (this.registers.sr.v && sum < 0x80) { this.registers.sr.v = 0; }
+                            }
+                        } else {
+                            sum = this.registers.a + value + this.registers.sr.c;
+                            if (sum >= 0x100) {
+                                this.registers.sr.c = 1;
+                                if (this.registers.sr.v && sum >= 0x180) { this.registers.sr.v = 0; }
+                            } else {
+                                this.registers.sr.c = 0;
+                                if (this.registers.sr.v && sum < 0x80) { this.registers.sr.v = 0; }
+                            }
+                        }
+
+                        this.registers.a = sum & 0xff;
+                        // console.log(`ADC result: ${CPU.dec2hexByte(this.registers.a)}`);
                         this.updateFlags(this.registers.a);
                     });
 
@@ -718,8 +749,69 @@ export class CPU {
                 break;
             
             case 'SBC': // Subtract Memory from Accumulator with Borrow
-                // TODO
-                break;      
+                (() => {
+                    let operand = {}; // We use an object, so it is passed by reference
+                    let value;
+
+                    if(mode !== '#') {
+                        this.getOperand(mode, operand);
+                    }
+
+                    this.queueStep(() => {
+                        let result, temp;
+
+                        if(mode === '#') {
+                            this.getOperand(mode, operand);
+                            value = operand.value;
+                        } else {
+                            value = this.memory.readByte(operand.value);
+                        }
+
+                        // console.log(`value: ${CPU.dec2hexByte(operand.value)}, mode: ${mode}`);
+
+                        if ((this.registers.a ^ value) & 0x80) {
+                            this.registers.sr.v = 1;
+                        } else {
+                            this.registers.sr.v = 0;
+                        }
+
+                        if (this.registers.sr.d) { // Decimal mode
+                            temp = 0xf + (this.registers.a & 0xf) - (value & 0xf) + this.registers.sr.c;
+                            if (temp < 0x10) {
+                                result = 0;
+                                temp -= 6;
+                            } else {
+                                result = 0x10;
+                                temp -= 0x10;
+                            }
+                            result += 0xf0 + (this.registers.a & 0xf0) - (value & 0xf0);
+                            if (result < 0x100) {
+                                this.registers.sr.c = 0;
+                                if (this.registers.sr.v && result < 0x80) { this.registers.sr.v = 0; }
+                                result -= 0x60;
+                            } else {
+                                this.registers.sr.c = 1;
+                                if (this.registers.sr.v && result >= 0x180) { this.registers.sr.v = 0; }
+                            }
+                            result += temp;
+                        } else {
+                            result = 0xff + this.registers.a - value + this.registers.sr.c;
+                            if (result < 0x100) {
+                                this.registers.sr.c = 0;
+                                if (this.registers.sr.v && result < 0x80) { this.registers.sr.v = 0; }
+                            } else {
+                                this.registers.sr.c = 1;
+                                if (this.registers.sr.v && result >= 0x180) { this.registers.sr.v = 0; }
+                            }
+                        }
+
+                        this.registers.a = result & 0xff;
+                        // console.log(`ADC result: ${CPU.dec2hexByte(this.registers.a)}`);
+                        this.updateFlags(this.registers.a);
+                    });
+
+                })();
+                break;
                 
             case 'SEC': // Set carry flag
                 this.queueStep(() => { 
@@ -1094,7 +1186,7 @@ export class CPU {
 
                     
                 })();
-            break;
+                break;
 
             case 'INDY': // The zero page address is dereferenced, and the Y register is added to the resulting address
                 (() => {
@@ -1154,8 +1246,6 @@ export class CPU {
                         operand.value = addr;
                     });
 
-                    
-
                 })();
                 break;
 
@@ -1184,6 +1274,7 @@ export class CPU {
                         highByte = this.memory.readByte(srcAddr + 1);
                         // console.log(`highByte: ${CPU.dec2hexByte(highByte)}`);
                         const finalAddress = lowByte + (highByte << 8);
+                        console.log(`XIND finalAddress: ${CPU.dec2hexWord(finalAddress)}`);
                         operand.value = finalAddress;
                     });
                     
