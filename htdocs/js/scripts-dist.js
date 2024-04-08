@@ -1323,6 +1323,19 @@
           });
           break;
         case "EOR":
+          (() => {
+            let operand = {}, value;
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              if (mode === "#") {
+                value = operand.value;
+              } else {
+                value = this.memory.readByte(operand.value);
+              }
+              this.registers.a = this.registers.a ^ value;
+              this.updateFlags(this.registers.a);
+            });
+          })();
           break;
         case "INC":
           (() => {
@@ -1394,6 +1407,19 @@
           });
           break;
         case "ORA":
+          (() => {
+            let operand = {}, value;
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              if (mode === "#") {
+                value = operand.value;
+              } else {
+                value = this.memory.readByte(operand.value);
+              }
+              this.registers.a = this.registers.a | value;
+              this.updateFlags(this.registers.a);
+            });
+          })();
           break;
         case "PHA":
           this.queueStep(() => {

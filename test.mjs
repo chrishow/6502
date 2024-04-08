@@ -345,6 +345,16 @@ assertEquals(cpu.registers.x, 0x6A);
 assertEquals(cpu.registers.sr.c, 0);
 assertEquals(cpu.registers.sr.n, 0);
 
+console.log('Test EOR'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a2 aa 8e 00 02 a9 55 0d 00 02'); // LDX #$AA, STX $0200, LDA #$55, EOR $0200
+cpu.registers.pc = 0x0600;
+cpu.steps(15);
+assertEquals(cpu.registers.a, 0xFF);
+assertEquals(cpu.registers.sr.c, 0);
+assertEquals(cpu.registers.sr.n, 1);
+
+
 
 
 

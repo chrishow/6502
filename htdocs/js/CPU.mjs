@@ -400,7 +400,21 @@ export class CPU {
                 break;
 
             case 'EOR': // Exclusive-OR Memory with Accumulator
-                // TODO
+                (() => {
+                    let operand = {}, value;
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        if(mode === '#') {
+                            value = operand.value;
+                        } else {
+                            value = this.memory.readByte(operand.value);
+                        }
+    
+                        this.registers.a = this.registers.a ^ value;
+                        this.updateFlags(this.registers.a);
+                    });
+                })();
                 break;
 
             case 'INC': // Increment memory
@@ -498,7 +512,21 @@ export class CPU {
                 break;
             
             case 'ORA': // OR Memory with Accumulator
-                // TODO
+                (() => {
+                    let operand = {}, value;
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        if(mode === '#') {
+                            value = operand.value;
+                        } else {
+                            value = this.memory.readByte(operand.value);
+                        }
+
+                        this.registers.a = this.registers.a | value;
+                        this.updateFlags(this.registers.a);
+                    });
+                })();
                 break;
 
             case 'PHA': // Push a onto stack
