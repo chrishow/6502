@@ -164,30 +164,31 @@ export class CPU {
                 break;
 
             case 'ASL': // Arithmetic shift left
-            (() => {
-                let operand = {};
-                let value;
-                this.getOperand(mode, operand);
+                (() => {
+                    let operand = {};
+                    let value;
+                    this.getOperand(mode, operand);
 
-                if(mode === 'A') { // Do it to accumulator
-                    this.queueStep(() => {
-                        this.registers.sr.c = this.registers.a >= 0x80 ? 1 : 0;
-                        this.registers.a = (this.registers.a << 1) & 0xff;
-                        this.updateFlags(this.registers.a);
-                    });
-                } else {
-                    this.queueStep(() => {
-                        value = this.memory.readByte(operand.value);
-                    });
+                    if(mode === 'A') { // Do it to accumulator
+                        this.queueStep(() => {
+                            this.registers.sr.c = this.registers.a >= 0x80 ? 1 : 0;
+                            this.registers.a = (this.registers.a << 1) & 0xff;
+                            this.updateFlags(this.registers.a);
+                        });
+                    } else {
+                        this.queueStep(() => {
+                            value = this.memory.readByte(operand.value);
+                        });
 
-                    this.queueStep(() => {
-                        this.registers.sr.c = value >= 0x80 ? 1 : 0;
-                        value = (value << 1) & 0xff;
-                        this.memory.writeByte(operand.value, value);
-                        this.updateFlags(value);
-                    });
-                }
-            })();
+                        this.queueStep(() => {
+                            this.registers.sr.c = value >= 0x80 ? 1 : 0;
+                            value = (value << 1) & 0xff;
+                            this.memory.writeByte(operand.value, value);
+                            this.updateFlags(value);
+                        });
+                    }
+                })();
+                break;
 
             case 'BCC': // Branch on carry clear
                 this.queueStep(() => {
@@ -571,8 +572,50 @@ export class CPU {
                 break;
 
             case 'ROL': // Rotate One Bit Left (Memory or Accumulator)
-                // TODO
-                break;
+                (() => {
+                    let operand = {};
+                    let input;
+                    this.getOperand(mode, operand);
+
+                    if(mode === 'A') { // Do it to accumulator
+                        this.queueStep(() => {
+                            input = this.registers.a;
+
+                            // Save carry
+                            const saveCarry = this.registers.sr.c;
+                            // Set carry from bit 7 of input
+                            this.registers.sr.c = (input & (1<< 6)) ? 1 : 0;
+                            // Rotate
+                            input = (input << 1) & 0xff;
+                            // Rotate in old carry at bit 0
+                            input |= saveCarry; 
+                            // Save back into a 
+                            this.registers.a = input;
+                            // Update flags
+                            this.updateFlags(this.registers.a);
+                        });
+                    } else {
+                        this.queueStep(() => {
+                            input = this.memory.readByte(operand.value);
+                        });
+
+                        this.queueStep(() => {
+                            // Save carry
+                            const saveCarry = this.registers.sr.c;
+                            // Set carry from bit 7 of input
+                            this.registers.sr.c = (input & (1<< 6)) ? 1 : 0;
+                            // Rotate
+                            input = (input << 1) & 0xff;
+                            // Rotate in old carry at bit 0
+                            input |= saveCarry; 
+                            // Save back into memory 
+                            this.memory.writeByte(operand.value, input);
+                            // Update flags
+                            this.updateFlags(input);
+                        });
+                    }
+                })();
+            break;
                 
             case 'ROR': // Rotate One Bit Right (Memory or Accumulator)
                 // TODO
@@ -622,7 +665,9 @@ export class CPU {
                 break;
             
             case 'SEI': // Set Interrupt Disable Status
-                // TODO
+                this.queueStep(() => { 
+                    this.registers.sr.i = 1;
+                });
                 break;
 
             case 'STA': // Store Accumulator in Memory

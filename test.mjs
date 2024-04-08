@@ -385,6 +385,23 @@ cpu.steps(13);
 assertEquals(cpu.registers.sp, 0xFF);
 assertEquals(cpu.flagsToByte(), 128 + 64 + 32 + 0 + 8 + 4 + 2 + 1);
 
+console.log('Test ROL A'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 fa 2a'); // LDA #$FA, ROL
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.registers.a, 0xF4);
+assertEquals(cpu.registers.sr.n, 1);
+assertEquals(cpu.registers.sr.c, 1);
+
+console.log('Test ROL ABS'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 fa 85 a0 26 a0'); // LDA #$FA, STA $A0, ROL $A0
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.memory.readByte(0x00A0), 0xF4);
+assertEquals(cpu.registers.sr.n, 1);
+assertEquals(cpu.registers.sr.c, 1);
 
 
 

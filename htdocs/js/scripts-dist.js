@@ -1164,6 +1164,7 @@
               });
             }
           })();
+          break;
         case "BCC":
           this.queueStep(() => {
             let operand = {};
@@ -1455,6 +1456,34 @@
           });
           break;
         case "ROL":
+          (() => {
+            let operand = {};
+            let input;
+            this.getOperand(mode, operand);
+            if (mode === "A") {
+              this.queueStep(() => {
+                input = this.registers.a;
+                const saveCarry = this.registers.sr.c;
+                this.registers.sr.c = input & 1 << 6 ? 1 : 0;
+                input = input << 1 & 255;
+                input |= saveCarry;
+                this.registers.a = input;
+                this.updateFlags(this.registers.a);
+              });
+            } else {
+              this.queueStep(() => {
+                input = this.memory.readByte(operand.value);
+              });
+              this.queueStep(() => {
+                const saveCarry = this.registers.sr.c;
+                this.registers.sr.c = input & 1 << 6 ? 1 : 0;
+                input = input << 1 & 255;
+                input |= saveCarry;
+                this.memory.writeByte(operand.value, input);
+                this.updateFlags(input);
+              });
+            }
+          })();
           break;
         case "ROR":
           break;
@@ -1489,6 +1518,9 @@
           });
           break;
         case "SEI":
+          this.queueStep(() => {
+            this.registers.sr.i = 1;
+          });
           break;
         case "STA":
           this.storeRegister("a", mode);
