@@ -327,6 +327,14 @@ cpu.steps(9);
 assertEquals(cpu.registers.a, 0x24);
 assertEquals(cpu.registers.sr.c, 0);
 
+console.log('Test DEC');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 69 8d 00 02 ce 00 02 ae 00 02'); // LDA #$69, STA $0200, DEC $0200, LDX $0200
+cpu.registers.pc = 0x0600;
+cpu.steps(15);
+assertEquals(cpu.registers.x, 0x68);
+assertEquals(cpu.registers.sr.c, 0);
+assertEquals(cpu.registers.sr.n, 0);
 
 
 

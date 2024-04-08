@@ -1244,6 +1244,26 @@
         case "BRK":
           this.stop();
           break;
+        case "BVC":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            if (this.registers.sr.v === 1) {
+              return;
+            }
+            this.doBranch(operand.value);
+          });
+          break;
+        case "BVS":
+          this.queueStep(() => {
+            let operand = {};
+            this.getOperand(mode, operand);
+            if (this.registers.sr.v === 0) {
+              return;
+            }
+            this.doBranch(operand.value);
+          });
+          break;
         case "CLC":
           this.queueStep(() => {
             this.registers.sr.c = 0;
@@ -1259,6 +1279,11 @@
             this.registers.sr.i = 0;
           });
           break;
+        case "CLV":
+          this.queueStep(() => {
+            this.registers.sr.v = 0;
+          });
+          break;
         case "CMP":
           this.compareRegister("a", mode);
           break;
@@ -1268,11 +1293,38 @@
         case "CPY":
           this.compareRegister("y", mode);
           break;
+        case "DEC":
+          (() => {
+            let operand = {}, currentValue;
+            this.getOperand(mode, operand);
+            this.queueStep(() => {
+              currentValue = this.memory.readByte(operand.value);
+            });
+            this.queueStep(() => {
+              currentValue = currentValue - 1;
+              if (currentValue === -1) {
+                currentValue = 255;
+              }
+              this.memory.writeByte(operand.value, currentValue);
+              this.updateFlags(currentValue);
+            });
+          })();
+          break;
         case "DEX":
           this.queueStep(() => {
             this.registers.x = this.registers.x - 1 & 255;
             this.updateFlags(this.registers.x);
           });
+          break;
+        case "DEY":
+          this.queueStep(() => {
+            this.registers.y = this.registers.y - 1 & 255;
+            this.updateFlags(this.registers.y);
+          });
+          break;
+        case "EOR":
+          break;
+        case "INC":
           break;
         case "INX":
           this.queueStep(() => {
@@ -1325,6 +1377,12 @@
         case "LDY":
           this.loadRegister("y", mode);
           break;
+        case "NOP":
+          this.queueStep(() => {
+          });
+          break;
+        case "ORA":
+          break;
         case "PHA":
           this.queueStep(() => {
           });
@@ -1332,12 +1390,22 @@
             this.pushToStack(this.registers.a);
           });
           break;
+        case "PHP":
+          break;
         case "PLA":
           this.queueStep(() => {
           });
           this.queueStep(() => {
             this.registers.a = this.pullFromStack();
           });
+          break;
+        case "PLP":
+          break;
+        case "ROL":
+          break;
+        case "ROR":
+          break;
+        case "RTI":
           break;
         case "RTS":
           let returnAddressLowByte, returnAddressHighByte;
@@ -1354,6 +1422,20 @@
           this.queueStep(() => {
             this.registers.pc = returnAddressLowByte + (returnAddressHighByte << 8) + 1;
           });
+          break;
+        case "SBC":
+          break;
+        case "SEC":
+          this.queueStep(() => {
+            this.registers.sr.c = 1;
+          });
+          break;
+        case "SED":
+          this.queueStep(() => {
+            this.registers.sr.d = 1;
+          });
+          break;
+        case "SEI":
           break;
         case "STA":
           this.storeRegister("a", mode);
@@ -1391,6 +1473,12 @@
         case "TXS":
           this.queueStep(() => {
             this.registers.sp = this.registers.x;
+          });
+          break;
+        case "TYA":
+          this.queueStep(() => {
+            this.registers.a = this.registers.y;
+            this.updateFlags(this.registers.a);
           });
           break;
         default:

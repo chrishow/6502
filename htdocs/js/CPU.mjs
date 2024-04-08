@@ -364,7 +364,25 @@ export class CPU {
                 break;
 
             case 'DEC': // Decrement memory
-                // TODO
+                (() => {
+                    let operand = {}, currentValue;
+                    this.getOperand(mode, operand);
+
+                    this.queueStep(() => {
+                        currentValue = this.memory.readByte(operand.value);
+
+                    });
+
+                    this.queueStep(() => {
+                        currentValue = (currentValue - 1);
+                        if(currentValue === -1) {
+                            currentValue = 0xFF;
+                        }
+                        this.memory.writeByte(operand.value, currentValue);
+                        this.updateFlags(currentValue);
+                    });
+
+                })()
                 break; 
 
             case 'DEX': // Decrement X
