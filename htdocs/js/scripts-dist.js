@@ -2153,7 +2153,7 @@
       displayContainer: displayElement
     });
     let PC = 0;
-    cpu.memory.hexLoad(1536, "a9 00 8d ff 00 a2 00 e8 8a 9d ff 00 e0 ff d0 f7 ca f0 f4 8a e9 0f 9d ff 00 4c 10 06");
+    cpu.memory.hexLoad(1536, "a9 00 a2 00 a0 00 e8 8a 9d ff 00 e0 00 d0 f7 98 9d ff 00 c8 ca f0 e9 4c 0f 06");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

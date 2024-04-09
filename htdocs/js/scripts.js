@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	// cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A');
 
 	// County thing
-	cpu.memory.hexLoad(0x0600, 'a9 00 8d ff 00 a2 00 e8 8a 9d ff 00 e0 ff d0 f7 ca f0 f4 8a e9 0f 9d ff 00 4c 10 06');
+	cpu.memory.hexLoad(0x0600, 'a9 00 a2 00 a0 00 e8 8a 9d ff 00 e0 00 d0 f7 98 9d ff 00 c8 ca f0 e9 4c 0f 06');
 
 	cpu.registers.pc = 0x0600; 
 	
