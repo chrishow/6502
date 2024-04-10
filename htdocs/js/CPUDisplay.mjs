@@ -17,7 +17,7 @@ export class CPUDisplay extends LitElement {
             attribute: true,
         }
 	  }
-	;}
+	}
 
 	static styles = css`
         :root {

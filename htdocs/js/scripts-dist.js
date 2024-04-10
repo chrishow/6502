@@ -42,25 +42,46 @@
 
   // htdocs/js/Memory.mjs
   var _Memory = class _Memory {
-    // static MEM_SIZE = 128;
     constructor() {
       this.initMemory();
       return this;
     }
     initMemory() {
       this._mem = new Uint8Array(_Memory.MEM_SIZE);
+      this._patches = [];
     }
     readByte(location) {
-      return this._mem[location];
+      const foundPatch = this._patches.findLastIndex((patch) => {
+        if (location >= patch.start && location <= patch.end) {
+          return true;
+        }
+      });
+      if (foundPatch > -1) {
+        return this._patches[foundPatch].readCallback(location);
+      } else {
+        return this._mem[location];
+      }
     }
     writeByte(location, value) {
-      this._mem[location] = value;
+      const foundPatch = this._patches.findLastIndex((patch) => {
+        if (location >= patch.start && location <= patch.end) {
+          return true;
+        }
+      });
+      if (foundPatch > -1) {
+        this._patches[foundPatch].writeCallback(location, value);
+      } else {
+        this._mem[location] = value;
+      }
     }
     hexLoad(start, hexString) {
       const bytes = hexString.split(" ");
       bytes.forEach((byte) => {
         this.writeByte(start++, parseInt(byte, 16));
       });
+    }
+    addPatch(patch) {
+      this._patches.push(patch);
     }
   };
   __publicField(_Memory, "MEM_SIZE", 64 * 1024);
@@ -963,6 +984,279 @@
   var CPUDisplay = _CPUDisplay;
   customElements.define("cpu-display", CPUDisplay);
 
+  // htdocs/js/CPUTerminal.mjs
+  var _CPUTerminal = class _CPUTerminal extends s3 {
+    constructor() {
+      super();
+      this.hasKey = false;
+      this.currentKey = null;
+      this.content = "\u200B";
+      this.addEventListener("keydown", (e4) => {
+        if (this.hasKey) {
+          return;
+        }
+        this.currentKey = e4.key.toUpperCase();
+        this.hasKey = true;
+        console.log("currentKey: ", this.currentKey);
+      });
+    }
+    /**
+     * Component's reactive properties
+     */
+    static get properties() {
+      return {
+        content: void 0
+      };
+    }
+    firstUpdated() {
+      this.terminalDiv = this.renderRoot.querySelector(".terminal");
+      this.terminalDiv.focus();
+      this.cpu.memory.addPatch({
+        start: 53266,
+        end: 53266,
+        readCallback: this.displayIsReady,
+        writeCallback: this.displayCharacter.bind(this)
+      });
+    }
+    /**
+     * Check if display is ready 
+     * @returns {number} Is the display ready? Number with bit 6 set? no, Number with bit 6 clear? yes
+     */
+    displayIsReady() {
+      return 1;
+    }
+    displayCharacter(location, character) {
+      this.content += String.fromCharCode(character);
+      if (this.content.length % _CPUTerminal.MAX_COLS == 0) {
+        this.content += "\n";
+      }
+      if (this.content.length > _CPUTerminal.MAX_COLS * _CPUTerminal.MAX_ROWS) {
+        this.content = this.content.substring(_CPUTerminal.MAX_COLS);
+      }
+    }
+    render() {
+      console.log("render");
+      return x`<div class='terminal' tabIndex=0>${this.content}<span class=cursor>@</span></div>`;
+    }
+  };
+  __publicField(_CPUTerminal, "MAX_COLS", 40);
+  __publicField(_CPUTerminal, "MAX_ROWS", 24);
+  __publicField(_CPUTerminal, "styles", i`
+    :root {
+        color: var(--fg-color, white);
+        background-color: var(--bg-color, #333);
+    }
+    
+    .terminal {
+        word-wrap: break-word;
+        white-space: pre;
+        opacity: 0.5;
+        --padding-block: 2em;
+        --padding-inline: 2ch;
+        padding: var(--padding-block) var(--padding-inline);
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+        font-family: var(--font-family, monospace);
+        font-weight: normal;
+        // text-transform: uppercase;
+        background-color: #333; 
+        color: white;
+        width: 40ch;
+        height: calc(36em + var(--padding-block) + var(--padding-block));
+        overflow-y: auto;        
+    }
+
+    .terminal:focus-visible,
+    .terminal:focus {
+        opacity: 1;
+        outline: none;
+    }
+
+    .terminal span.cursor { 
+        animation: blink 0.75s infinite;
+    }
+
+
+    @keyframes blink {
+        0% {
+            opacity: 0;
+        }
+
+        49% {
+            opacity: 0;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes flicker {
+        0% {
+        opacity: 0.27861;
+        }
+        5% {
+        opacity: 0.34769;
+        }
+        10% {
+        opacity: 0.23604;
+        }
+        15% {
+        opacity: 0.90626;
+        }
+        20% {
+        opacity: 0.18128;
+        }
+        25% {
+        opacity: 0.83891;
+        }
+        30% {
+        opacity: 0.65583;
+        }
+        35% {
+        opacity: 0.67807;
+        }
+        40% {
+        opacity: 0.26559;
+        }
+        45% {
+        opacity: 0.84693;
+        }
+        50% {
+        opacity: 0.96019;
+        }
+        55% {
+        opacity: 0.08594;
+        }
+        60% {
+        opacity: 0.20313;
+        }
+        65% {
+        opacity: 0.71988;
+        }
+        70% {
+        opacity: 0.53455;
+        }
+        75% {
+        opacity: 0.37288;
+        }
+        80% {
+        opacity: 0.71428;
+        }
+        85% {
+        opacity: 0.70419;
+        }
+        90% {
+        opacity: 0.7003;
+        }
+        95% {
+        opacity: 0.36108;
+        }
+        100% {
+        opacity: 0.24387;
+        }
+    }
+    @keyframes textShadow {
+        0% {
+        text-shadow: 0.4389924193300864px 0 1px rgba(0,30,255,0.5), -0.4389924193300864px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        5% {
+        text-shadow: 2.7928974010788217px 0 1px rgba(0,30,255,0.5), -2.7928974010788217px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        10% {
+        text-shadow: 0.02956275843481219px 0 1px rgba(0,30,255,0.5), -0.02956275843481219px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        15% {
+        text-shadow: 0.40218538552878136px 0 1px rgba(0,30,255,0.5), -0.40218538552878136px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        20% {
+        text-shadow: 3.4794037899852017px 0 1px rgba(0,30,255,0.5), -3.4794037899852017px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        25% {
+        text-shadow: 1.6125630401149584px 0 1px rgba(0,30,255,0.5), -1.6125630401149584px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        30% {
+        text-shadow: 0.7015590085143956px 0 1px rgba(0,30,255,0.5), -0.7015590085143956px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        35% {
+        text-shadow: 3.896914047650351px 0 1px rgba(0,30,255,0.5), -3.896914047650351px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        40% {
+        text-shadow: 3.870905614848819px 0 1px rgba(0,30,255,0.5), -3.870905614848819px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        45% {
+        text-shadow: 2.231056963361899px 0 1px rgba(0,30,255,0.5), -2.231056963361899px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        50% {
+        text-shadow: 0.08084290417898504px 0 1px rgba(0,30,255,0.5), -0.08084290417898504px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        55% {
+        text-shadow: 2.3758461067427543px 0 1px rgba(0,30,255,0.5), -2.3758461067427543px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        60% {
+        text-shadow: 2.202193051050636px 0 1px rgba(0,30,255,0.5), -2.202193051050636px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        65% {
+        text-shadow: 2.8638780614874975px 0 1px rgba(0,30,255,0.5), -2.8638780614874975px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        70% {
+        text-shadow: 0.48874025155497314px 0 1px rgba(0,30,255,0.5), -0.48874025155497314px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        75% {
+        text-shadow: 1.8948491305757957px 0 1px rgba(0,30,255,0.5), -1.8948491305757957px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        80% {
+        text-shadow: 0.0833037308038857px 0 1px rgba(0,30,255,0.5), -0.0833037308038857px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        85% {
+        text-shadow: 0.09769827255241735px 0 1px rgba(0,30,255,0.5), -0.09769827255241735px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        90% {
+        text-shadow: 3.443339761481782px 0 1px rgba(0,30,255,0.5), -3.443339761481782px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        95% {
+        text-shadow: 2.1841838852799786px 0 1px rgba(0,30,255,0.5), -2.1841838852799786px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+        100% {
+        text-shadow: 2.6208764473832513px 0 1px rgba(0,30,255,0.5), -2.6208764473832513px 0 1px rgba(255,0,80,0.3), 0 0 3px;
+        }
+    }
+    .terminal::after {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: rgba(18, 16, 16, 0.1);
+        opacity: 0;
+        z-index: 2;
+        pointer-events: none;
+        animation: flicker 0.15s infinite;
+    }
+    .terminal::before {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        z-index: 2;
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
+    }
+    .terminal {
+        animation: textShadow 1.6s infinite;
+    }
+    
+    `);
+  var CPUTerminal = _CPUTerminal;
+  customElements.define("cpu-terminal", CPUTerminal);
+
   // htdocs/js/InstructionDecoder.mjs
   var _InstructionDecoder = class _InstructionDecoder {
     /**
@@ -1038,6 +1332,11 @@
         this.display.cpu = this;
         this.display.memory = this.memory;
         options.displayContainer.append(this.display);
+      }
+      if (options && options.terminalContainer) {
+        this.terminal = document.createElement("cpu-terminal");
+        this.terminal.cpu = this;
+        options.terminalContainer.append(this.terminal);
       }
       return this;
     }
@@ -2148,12 +2447,13 @@
 
   // htdocs/js/scripts.js
   document.addEventListener("DOMContentLoaded", function() {
-    const displayElement = document.querySelector(".display");
+    const displayElement = document.querySelector(".cpu-display");
+    const terminalElement = document.querySelector(".terminal");
     const cpu = new CPU({
-      displayContainer: displayElement
+      displayContainer: displayElement,
+      terminalContainer: terminalElement
     });
-    let PC = 0;
-    cpu.memory.hexLoad(1536, "a9 00 a2 00 a0 00 e8 8a 9d ff 00 e0 00 d0 f7 98 9d ff 00 c8 ca f0 e9 4c 0f 06");
+    cpu.memory.hexLoad(1536, "a2 20 2c 12 d0 30 fb 8e 12 d0 e8 e0 7e f0 f1 d0 f1");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

@@ -13,7 +13,9 @@
 		<a href='https://github.com/chrishow/6502'>View on GitHub</a>
 	</p>
 
-	<div class=display></div>
+	<div class=cpu-display></div>
+
+	<div class='terminal'></div>
 
 
     <script src='/js/scripts-dist.js?v=<?= filemtime('js/scripts-dist.js') ?>' type=module></script>

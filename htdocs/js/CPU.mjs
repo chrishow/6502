@@ -1,5 +1,6 @@
 import { Memory } from './Memory.mjs';
 import { CPUDisplay } from "./CPUDisplay.mjs";
+import { CPUTerminal } from "./CPUTerminal.mjs";
 import { InstructionDecoder } from './InstructionDecoder.mjs';
 
 export class CPU {
@@ -31,6 +32,13 @@ export class CPU {
             this.display.memory = this.memory;
 
             options.displayContainer.append(this.display);
+        }
+
+        if(options && options.terminalContainer) {
+            this.terminal = document.createElement('cpu-terminal');
+            this.terminal.cpu = this;
+
+            options.terminalContainer.append(this.terminal);
         }
 
         return this;

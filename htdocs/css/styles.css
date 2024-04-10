@@ -174,12 +174,19 @@ html.dark {
     --bg-color: #111;
   }
 }
+@font-face {
+  font-family: "Apple ][";
+  src: url(../fonts/apple-2.woff2);
+}
 body {
   font-size: 1rem;
   padding: 0.5em;
 }
 .display {
   margin-top: 1em;
+}
+.terminal {
+  --font-family: "Apple ][";
 }
 /*! modern-normalize v2.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
 /*# sourceMappingURL=styles.css.map */
