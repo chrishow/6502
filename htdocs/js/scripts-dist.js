@@ -990,7 +990,7 @@
       super();
       this.hasKey = false;
       this.currentKey = null;
-      this.content = "\u200B";
+      this.content = _CPUTerminal.ZERO_WIDTH_SPACE;
       this.addEventListener("keydown", (e4) => {
         if (this.hasKey) {
           return;
@@ -1031,7 +1031,7 @@
         this.content += "\n";
       }
       if (this.content.length > _CPUTerminal.MAX_COLS * _CPUTerminal.MAX_ROWS) {
-        this.content = this.content.substring(_CPUTerminal.MAX_COLS);
+        this.content = _CPUTerminal.ZERO_WIDTH_SPACE + this.content.substring(_CPUTerminal.MAX_COLS + 1);
       }
     }
     render() {
@@ -1041,6 +1041,7 @@
   };
   __publicField(_CPUTerminal, "MAX_COLS", 40);
   __publicField(_CPUTerminal, "MAX_ROWS", 24);
+  __publicField(_CPUTerminal, "ZERO_WIDTH_SPACE", "\u200B");
   __publicField(_CPUTerminal, "styles", i`
     :root {
         color: var(--fg-color, white);
@@ -1050,7 +1051,7 @@
     .terminal {
         word-wrap: break-word;
         white-space: pre;
-        opacity: 0.5;
+        /* opacity: 0.5; */
         --padding-block: 2em;
         --padding-inline: 2ch;
         padding: var(--padding-block) var(--padding-inline);
@@ -1063,14 +1064,14 @@
         background-color: #333; 
         color: white;
         width: 40ch;
-        height: calc(36em + var(--padding-block) + var(--padding-block));
-        overflow-y: auto;        
+        height: calc(32em + var(--padding-block) + var(--padding-block));
+        overflow: hidden;        
     }
 
     .terminal:focus-visible,
     .terminal:focus {
-        opacity: 1;
-        outline: none;
+        /* opacity: 1; */
+        /* outline: none; */
     }
 
     .terminal span.cursor { 

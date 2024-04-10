@@ -3,13 +3,14 @@ import { LitElement, css, html } from 'lit';
 export class CPUTerminal extends LitElement {
     static MAX_COLS = 40;
     static MAX_ROWS = 24;
+    static ZERO_WIDTH_SPACE = '​';
 
     constructor() {
         super();
 
         this.hasKey = false;
         this.currentKey = null;
-        this.content = '​';
+        this.content = CPUTerminal.ZERO_WIDTH_SPACE;
 
         this.addEventListener('keydown', (e) => {
             // console.log('keyDown: ', e.key);
@@ -60,11 +61,12 @@ export class CPUTerminal extends LitElement {
     displayCharacter(location, character) {
         this.content += String.fromCharCode(character);
 
-        if(this.content.length %  CPUTerminal.MAX_COLS == 0) {
+        if(this.content.length % CPUTerminal.MAX_COLS == 0) {
             this.content += "\n";
         }
         if(this.content.length > (CPUTerminal.MAX_COLS * CPUTerminal.MAX_ROWS)) {
-            this.content = this.content.substring(CPUTerminal.MAX_COLS);
+            // Remove top 'row'
+            this.content = CPUTerminal.ZERO_WIDTH_SPACE + this.content.substring(CPUTerminal.MAX_COLS + 1);
         }
     }
 
@@ -78,7 +80,7 @@ export class CPUTerminal extends LitElement {
     .terminal {
         word-wrap: break-word;
         white-space: pre;
-        opacity: 0.5;
+        /* opacity: 0.5; */
         --padding-block: 2em;
         --padding-inline: 2ch;
         padding: var(--padding-block) var(--padding-inline);
@@ -91,14 +93,14 @@ export class CPUTerminal extends LitElement {
         background-color: #333; 
         color: white;
         width: 40ch;
-        height: calc(36em + var(--padding-block) + var(--padding-block));
-        overflow-y: auto;        
+        height: calc(32em + var(--padding-block) + var(--padding-block));
+        overflow: hidden;        
     }
 
     .terminal:focus-visible,
     .terminal:focus {
-        opacity: 1;
-        outline: none;
+        /* opacity: 1; */
+        /* outline: none; */
     }
 
     .terminal span.cursor { 
