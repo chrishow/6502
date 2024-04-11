@@ -992,12 +992,21 @@
       this.currentKey = null;
       this.content = "";
       this.addEventListener("keydown", (e4) => {
+        e4.stopPropagation();
+        e4.preventDefault();
+        const keysToIgnore = ["Shift", "Meta", "Alt", "Control", "Escape", "ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft"];
         if (this.hasKey) {
           return;
         }
-        this.currentKey = e4.key.toUpperCase();
+        if (keysToIgnore.includes(e4.key)) {
+          return false;
+        }
+        if (e4.key === "Enter") {
+          this.currentKey = 10;
+        } else {
+          this.currentKey = e4.key.charCodeAt(0);
+        }
         this.hasKey = true;
-        console.log("currentKey: ", this.currentKey);
       });
     }
     /**
@@ -1047,8 +1056,7 @@
      */
     getKey() {
       this.hasKey = false;
-      console.log(`Sending key '${this.currentKey}', decimal ${this.currentKey.charCodeAt(0)}`);
-      return this.currentKey.charCodeAt(0);
+      return this.currentKey;
     }
     /**
      * Check if display is ready 

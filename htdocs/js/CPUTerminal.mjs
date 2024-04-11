@@ -12,6 +12,10 @@ export class CPUTerminal extends LitElement {
         this.content = '';
 
         this.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            const keysToIgnore = ['Shift', 'Meta', 'Alt', 'Control','Escape','ArrowUp','ArrowDown', 'ArrowRight', 'ArrowLeft'];
             // console.log('keyDown: ', e.key);
 
             if(this.hasKey) {
@@ -19,9 +23,20 @@ export class CPUTerminal extends LitElement {
                 return;
             }
 
-            this.currentKey = e.key.toUpperCase();
+            // Ignore these keys
+            if(keysToIgnore.includes(e.key)) {
+                return false;
+            }
+
+            // Map some keys to other codes
+            if(e.key === 'Enter') {
+                this.currentKey = 10;
+            } else {
+                this.currentKey = e.key.charCodeAt(0);
+            }
+
             this.hasKey = true;
-            console.log('currentKey: ', this.currentKey);
+            // console.log('currentKey: ', this.currentKey);
         });
 
     }
@@ -82,8 +97,7 @@ export class CPUTerminal extends LitElement {
      */
     getKey() {
         this.hasKey = false;
-        console.log(`Sending key '${this.currentKey}', decimal ${this.currentKey.charCodeAt(0)}`);
-        return(this.currentKey.charCodeAt(0));
+        return(this.currentKey);
     }
 
 
