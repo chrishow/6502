@@ -990,7 +990,7 @@
       super();
       this.hasKey = false;
       this.currentKey = null;
-      this.content = _CPUTerminal.ZERO_WIDTH_SPACE;
+      this.content = "";
       this.addEventListener("keydown", (e4) => {
         if (this.hasKey) {
           return;
@@ -1027,11 +1027,11 @@
     }
     displayCharacter(location, character) {
       this.content += String.fromCharCode(character);
-      if (this.content.length % _CPUTerminal.MAX_COLS == 0) {
+      if ((this.content.length + 1) % _CPUTerminal.MAX_COLS == 0) {
         this.content += "\n";
       }
       if (this.content.length > _CPUTerminal.MAX_COLS * _CPUTerminal.MAX_ROWS) {
-        this.content = _CPUTerminal.ZERO_WIDTH_SPACE + this.content.substring(_CPUTerminal.MAX_COLS + 1);
+        this.content = this.content.substring(_CPUTerminal.MAX_COLS);
       }
     }
     render() {
@@ -1041,7 +1041,6 @@
   };
   __publicField(_CPUTerminal, "MAX_COLS", 40);
   __publicField(_CPUTerminal, "MAX_ROWS", 24);
-  __publicField(_CPUTerminal, "ZERO_WIDTH_SPACE", "\u200B");
   __publicField(_CPUTerminal, "styles", i`
     :root {
         color: var(--fg-color, white);

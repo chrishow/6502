@@ -3,14 +3,13 @@ import { LitElement, css, html } from 'lit';
 export class CPUTerminal extends LitElement {
     static MAX_COLS = 40;
     static MAX_ROWS = 24;
-    static ZERO_WIDTH_SPACE = '​';
 
     constructor() {
         super();
 
         this.hasKey = false;
         this.currentKey = null;
-        this.content = CPUTerminal.ZERO_WIDTH_SPACE;
+        this.content = '';
 
         this.addEventListener('keydown', (e) => {
             // console.log('keyDown: ', e.key);
@@ -40,7 +39,7 @@ export class CPUTerminal extends LitElement {
         this.terminalDiv = this.renderRoot.querySelector('.terminal');
         this.terminalDiv.focus();
 
-        // Patch memory
+        // Patch memory for display
         this.cpu.memory.addPatch({
             start: 0xD012,
             end: 0xD012,
@@ -55,18 +54,18 @@ export class CPUTerminal extends LitElement {
      * @returns {number} Is the display ready? Number with bit 6 set? no, Number with bit 6 clear? yes
      */
     displayIsReady() {
-        return 0x01; // a number with bit 6 clear
+        return 0x01; // a number with bit 6 clear because it's always ready
     }
 
     displayCharacter(location, character) {
         this.content += String.fromCharCode(character);
 
-        if(this.content.length % CPUTerminal.MAX_COLS == 0) {
-            this.content += "\n";
+        if((this.content.length + 1) % CPUTerminal.MAX_COLS == 0) {
+            this.content += "\n"; // Start a new row
         }
         if(this.content.length > (CPUTerminal.MAX_COLS * CPUTerminal.MAX_ROWS)) {
-            // Remove top 'row'
-            this.content = CPUTerminal.ZERO_WIDTH_SPACE + this.content.substring(CPUTerminal.MAX_COLS + 1);
+            // Have reached bottom of screen, remove top 'row', scrolling up a line
+            this.content = this.content.substring(CPUTerminal.MAX_COLS);
         }
     }
 
