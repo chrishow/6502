@@ -9,13 +9,13 @@ export class CPUTerminal extends LitElement {
 
         this.hasKey = false;
         this.currentKey = null;
-        this.content = '';
+        this.content = [[]];
 
         this.addEventListener('keydown', (e) => {
             e.stopPropagation();
             e.preventDefault();
 
-            const keysToIgnore = ['Shift', 'Meta', 'Alt', 'Control','Escape','ArrowUp','ArrowDown', 'ArrowRight', 'ArrowLeft'];
+            const keysToIgnore = ['Shift', 'Meta', 'Alt', 'Control','Escape','ArrowUp','ArrowDown', 'ArrowRight', 'ArrowLeft', 'Tab'];
             // console.log('keyDown: ', e.key);
 
             if(this.hasKey) {
@@ -110,15 +110,21 @@ export class CPUTerminal extends LitElement {
     }
 
     displayCharacter(location, character) {
-        this.content += String.fromCharCode(character);
+        const lastLine = this.content[this.content.length - 1];
+        
+        lastLine.push(String.fromCharCode(character));
 
-        if((this.content.length + 1) % CPUTerminal.MAX_COLS == 0) {
-            this.content += "\n"; // Start a new row
+        if(lastLine.length >= CPUTerminal.MAX_COLS) {
+            lastLine.push("\n");
+            // Add a new row
+            this.content.push([]);
         }
-        if(this.content.length > (CPUTerminal.MAX_COLS * CPUTerminal.MAX_ROWS)) {
+
+        if(this.content.length >= CPUTerminal.MAX_ROWS) {
             // Have reached bottom of screen, remove top 'row', scrolling up a line
-            this.content = this.content.substring(CPUTerminal.MAX_COLS);
+            this.content.shift();
         }
+        this.requestUpdate();
     }
 
 
@@ -144,7 +150,7 @@ export class CPUTerminal extends LitElement {
         background-color: #333; 
         color: white;
         width: 40ch;
-        height: calc(32em + var(--padding-block) + var(--padding-block));
+        height: calc(31em + var(--padding-block) + var(--padding-block));
         overflow: hidden;        
     }
 
@@ -339,6 +345,12 @@ export class CPUTerminal extends LitElement {
     render() {
         // console.log('render');
         return html`<div class='terminal' tabIndex=0>${this.content}<span class=cursor>@</span></div>`;
+
+
+        // return html`<div class='terminal' tabIndex=0>${this.content.map((line) =>
+        // html`${line}`
+        // )}<span class=cursor>@</span></div>`;
+        
     }
 }
 customElements.define('cpu-terminal', CPUTerminal);

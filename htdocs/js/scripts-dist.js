@@ -990,11 +990,11 @@
       super();
       this.hasKey = false;
       this.currentKey = null;
-      this.content = "";
+      this.content = [[]];
       this.addEventListener("keydown", (e4) => {
         e4.stopPropagation();
         e4.preventDefault();
-        const keysToIgnore = ["Shift", "Meta", "Alt", "Control", "Escape", "ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft"];
+        const keysToIgnore = ["Shift", "Meta", "Alt", "Control", "Escape", "ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft", "Tab"];
         if (this.hasKey) {
           return;
         }
@@ -1066,13 +1066,16 @@
       return 1;
     }
     displayCharacter(location, character) {
-      this.content += String.fromCharCode(character);
-      if ((this.content.length + 1) % _CPUTerminal.MAX_COLS == 0) {
-        this.content += "\n";
+      const lastLine = this.content[this.content.length - 1];
+      lastLine.push(String.fromCharCode(character));
+      if (lastLine.length >= _CPUTerminal.MAX_COLS) {
+        lastLine.push("\n");
+        this.content.push([]);
       }
-      if (this.content.length > _CPUTerminal.MAX_COLS * _CPUTerminal.MAX_ROWS) {
-        this.content = this.content.substring(_CPUTerminal.MAX_COLS);
+      if (this.content.length >= _CPUTerminal.MAX_ROWS) {
+        this.content.shift();
       }
+      this.requestUpdate();
     }
     render() {
       return x`<div class='terminal' tabIndex=0>${this.content}<span class=cursor>@</span></div>`;
@@ -1102,7 +1105,7 @@
         background-color: #333; 
         color: white;
         width: 40ch;
-        height: calc(32em + var(--padding-block) + var(--padding-block));
+        height: calc(31em + var(--padding-block) + var(--padding-block));
         overflow: hidden;        
     }
 
@@ -2492,7 +2495,7 @@
       displayContainer: displayElement,
       terminalContainer: terminalElement
     });
-    cpu.memory.hexLoad(1536, "ad 11 d0 10 fb ad 10 d0 99 ff ff 20 11 06 4c 00 06 2c 12 d0 30 fb 8d 12 d0 60");
+    cpu.memory.hexLoad(1536, "a2 20 2c 12 d0 30 fb 8e 12 d0 e8 e0 7e f0 f1 d0 f1");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();
