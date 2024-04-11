@@ -26,9 +26,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	// cpu.memory.hexLoad(0x0600, 'a9 42 2c 12 d0 30 fb 8d 12 d0'); // Write one char
 	// cpu.memory.hexLoad(0x0600, 'a2 41 2c 12 d0 30 fb 8e 12 d0 e8 d0 f5'); // Write many chars
-	cpu.memory.hexLoad(0x0600, 'a2 20 2c 12 d0 30 fb 8e 12 d0 e8 e0 7e f0 f1 d0 f1'); // Write many chars	
+	// cpu.memory.hexLoad(0x0600, 'a2 20 2c 12 d0 30 fb 8e 12 d0 e8 e0 7e f0 f1 d0 f1'); // Write many chars	
 	
-	// cpu.memory.hexLoad(0x0600, 'ad 11 d0 10 fb ad 10 d0 99 ff ff 20 11 06 4c 00 06 2c 12 d0 30 fb 8d 12 d0 60'); // Read from keyboard and echo to screen	
+	cpu.memory.hexLoad(0x0600, 'ad 11 d0 10 fb ad 10 d0 99 ff ff 20 11 06 4c 00 06 2c 12 d0 30 fb 8d 12 d0 60'); // Read from keyboard and echo to screen	
 
 	cpu.registers.pc = 0x0600; 
 	

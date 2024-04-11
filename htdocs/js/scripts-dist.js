@@ -990,7 +990,7 @@
       super();
       this.hasKey = false;
       this.currentKey = null;
-      this.content = [[]];
+      this.content = [""];
       this.addEventListener("keydown", (e4) => {
         e4.stopPropagation();
         e4.preventDefault();
@@ -1065,12 +1065,19 @@
     displayIsReady() {
       return 1;
     }
+    /**
+     * Write a character to the display
+     * 
+     * @param {number} location - not used
+     * @param {number} character code
+     */
     displayCharacter(location, character) {
-      const lastLine = this.content[this.content.length - 1];
-      lastLine.push(String.fromCharCode(character));
-      if (lastLine.length >= _CPUTerminal.MAX_COLS) {
-        lastLine.push("\n");
-        this.content.push([]);
+      this.content[this.content.length - 1] += String.fromCharCode(character);
+      if (this.content[this.content.length - 1].length >= _CPUTerminal.MAX_COLS || character === 10) {
+        if (character !== 10) {
+          this.content[this.content.length - 1] += "\n";
+        }
+        this.content.push("");
       }
       if (this.content.length >= _CPUTerminal.MAX_ROWS) {
         this.content.shift();
@@ -1264,7 +1271,7 @@
         text-shadow: 2.6208764473832513px 0 1px rgba(0,30,255,0.5), -2.6208764473832513px 0 1px rgba(255,0,80,0.3), 0 0 3px;
         }
     }
-    .terminal::after {
+    .Xterminal::after {
         content: " ";
         display: block;
         position: absolute;
@@ -1276,7 +1283,7 @@
         opacity: 0;
         z-index: 2;
         pointer-events: none;
-        animation: flicker 0.15s infinite;
+        animation: flicker 0.5s infinite;
     }
     .terminal::before {
         content: " ";
@@ -2495,7 +2502,7 @@
       displayContainer: displayElement,
       terminalContainer: terminalElement
     });
-    cpu.memory.hexLoad(1536, "a2 20 2c 12 d0 30 fb 8e 12 d0 e8 e0 7e f0 f1 d0 f1");
+    cpu.memory.hexLoad(1536, "ad 11 d0 10 fb ad 10 d0 99 ff ff 20 11 06 4c 00 06 2c 12 d0 30 fb 8d 12 d0 60");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();

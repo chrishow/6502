@@ -9,7 +9,7 @@ export class CPUTerminal extends LitElement {
 
         this.hasKey = false;
         this.currentKey = null;
-        this.content = [[]];
+        this.content = [''];
 
         this.addEventListener('keydown', (e) => {
             e.stopPropagation();
@@ -109,21 +109,28 @@ export class CPUTerminal extends LitElement {
         return 0x01; // a number with bit 6 clear because it's always ready
     }
 
-    displayCharacter(location, character) {
-        const lastLine = this.content[this.content.length - 1];
-        
-        lastLine.push(String.fromCharCode(character));
+    /**
+     * Write a character to the display
+     * 
+     * @param {number} location - not used
+     * @param {number} character code
+     */
+    displayCharacter(location, character) {        
+        this.content[this.content.length - 1] += String.fromCharCode(character);
 
-        if(lastLine.length >= CPUTerminal.MAX_COLS) {
-            lastLine.push("\n");
+        if(this.content[this.content.length - 1].length >= CPUTerminal.MAX_COLS || character === 10) {
+            if(character !== 10) {
+                this.content[this.content.length - 1] += "\n";
+            }
             // Add a new row
-            this.content.push([]);
+            this.content.push('');
         }
 
         if(this.content.length >= CPUTerminal.MAX_ROWS) {
             // Have reached bottom of screen, remove top 'row', scrolling up a line
             this.content.shift();
         }
+
         this.requestUpdate();
     }
 
@@ -309,7 +316,7 @@ export class CPUTerminal extends LitElement {
         text-shadow: 2.6208764473832513px 0 1px rgba(0,30,255,0.5), -2.6208764473832513px 0 1px rgba(255,0,80,0.3), 0 0 3px;
         }
     }
-    .terminal::after {
+    .Xterminal::after {
         content: " ";
         display: block;
         position: absolute;
@@ -321,7 +328,7 @@ export class CPUTerminal extends LitElement {
         opacity: 0;
         z-index: 2;
         pointer-events: none;
-        animation: flicker 0.15s infinite;
+        animation: flicker 0.5s infinite;
     }
     .terminal::before {
         content: " ";
@@ -345,12 +352,6 @@ export class CPUTerminal extends LitElement {
     render() {
         // console.log('render');
         return html`<div class='terminal' tabIndex=0>${this.content}<span class=cursor>@</span></div>`;
-
-
-        // return html`<div class='terminal' tabIndex=0>${this.content.map((line) =>
-        // html`${line}`
-        // )}<span class=cursor>@</span></div>`;
-        
     }
 }
 customElements.define('cpu-terminal', CPUTerminal);
