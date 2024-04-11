@@ -47,7 +47,45 @@ export class CPUTerminal extends LitElement {
             writeCallback: this.displayCharacter.bind(this),
         });
 
+        // Keyboard control register $D011
+        this.cpu.memory.addPatch({
+            start: 0xD011,
+            end: 0xD011,
+            readCallback: this.keyboardHasKeyToSend.bind(this),
+        });
+
+        // Keyboard input $D010
+        this.cpu.memory.addPatch({
+            start: 0xD010,
+            end: 0xD010,
+            readCallback: this.getKey.bind(this),
+        });
     }
+
+    /**
+     * Check if we have a key to send
+     * 
+     * @returns {number} Do we have a key press to send? 
+     */
+    keyboardHasKeyToSend() {
+        if(this.hasKey) {
+            return 0xF1; // bit 6 set
+        } else {
+            return 0x01; // bit 6 clear
+        }
+    }
+
+    /**
+     * Gets current key and resets hasKey to false
+     * 
+     * @returns {number} Current key
+     */
+    getKey() {
+        this.hasKey = false;
+        console.log(`Sending key '${this.currentKey}', decimal ${this.currentKey.charCodeAt(0)}`);
+        return(this.currentKey.charCodeAt(0));
+    }
+
 
     /**
      * Check if display is ready 
@@ -285,7 +323,7 @@ export class CPUTerminal extends LitElement {
     `;    
 
     render() {
-        console.log('render');
+        // console.log('render');
         return html`<div class='terminal' tabIndex=0>${this.content}<span class=cursor>@</span></div>`;
     }
 }

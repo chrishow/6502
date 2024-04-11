@@ -1017,6 +1017,38 @@
         readCallback: this.displayIsReady,
         writeCallback: this.displayCharacter.bind(this)
       });
+      this.cpu.memory.addPatch({
+        start: 53265,
+        end: 53265,
+        readCallback: this.keyboardHasKeyToSend.bind(this)
+      });
+      this.cpu.memory.addPatch({
+        start: 53264,
+        end: 53264,
+        readCallback: this.getKey.bind(this)
+      });
+    }
+    /**
+     * Check if we have a key to send
+     * 
+     * @returns {number} Do we have a key press to send? 
+     */
+    keyboardHasKeyToSend() {
+      if (this.hasKey) {
+        return 241;
+      } else {
+        return 1;
+      }
+    }
+    /**
+     * Gets current key and resets hasKey to false
+     * 
+     * @returns {number} Current key
+     */
+    getKey() {
+      this.hasKey = false;
+      console.log(`Sending key '${this.currentKey}', decimal ${this.currentKey.charCodeAt(0)}`);
+      return this.currentKey.charCodeAt(0);
     }
     /**
      * Check if display is ready 
@@ -1035,7 +1067,6 @@
       }
     }
     render() {
-      console.log("render");
       return x`<div class='terminal' tabIndex=0>${this.content}<span class=cursor>@</span></div>`;
     }
   };
@@ -2453,7 +2484,7 @@
       displayContainer: displayElement,
       terminalContainer: terminalElement
     });
-    cpu.memory.hexLoad(1536, "a2 20 2c 12 d0 30 fb 8e 12 d0 e8 e0 7e f0 f1 d0 f1");
+    cpu.memory.hexLoad(1536, "ad 11 d0 10 fb ad 10 d0 99 ff ff 20 11 06 4c 00 06 2c 12 d0 30 fb 8d 12 d0 60");
     cpu.registers.pc = 1536;
     window.cpu = cpu;
     cpu.boot();
