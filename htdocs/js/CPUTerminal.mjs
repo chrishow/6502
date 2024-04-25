@@ -15,7 +15,7 @@ export class CPUTerminal extends LitElement {
             e.stopPropagation();
             e.preventDefault();
 
-            const keysToIgnore = ['Shift', 'Meta', 'Alt', 'Control','Escape','ArrowUp','ArrowDown', 'ArrowRight', 'ArrowLeft', 'Tab'];
+            const keysToIgnore = ['Shift', 'Meta', 'Alt', 'Control','ArrowUp','ArrowDown', 'ArrowRight', 'ArrowLeft', 'Tab'];
             // console.log('keyDown: ', e.key);
 
             if(this.hasKey) {
@@ -30,13 +30,15 @@ export class CPUTerminal extends LitElement {
 
             // Map some keys to other codes
             if(e.key === 'Enter') {
-                this.currentKey = 10;
+                this.currentKey = 0x0A;
+            } else if(e.key === 'Escape') {
+                this.currentKey = 0x1B;
             } else {
                 this.currentKey = e.key.charCodeAt(0);
             }
 
             this.hasKey = true;
-            // console.log('currentKey: ', this.currentKey);
+            console.log('currentKey: ', this.currentKey.toString(16).padStart(2, '0').toUpperCase());
         });
 
     }
@@ -54,7 +56,7 @@ export class CPUTerminal extends LitElement {
         this.terminalDiv = this.renderRoot.querySelector('.terminal');
         this.terminalDiv.focus();
 
-        // Patch memory for display
+        // Patch memory for display $0D12
         this.cpu.memory.addPatch({
             start: 0xD012,
             end: 0xD012,
@@ -118,8 +120,8 @@ export class CPUTerminal extends LitElement {
     displayCharacter(location, character) {        
         this.content[this.content.length - 1] += String.fromCharCode(character);
 
-        if(this.content[this.content.length - 1].length >= CPUTerminal.MAX_COLS || character === 10) {
-            if(character !== 10) {
+        if(this.content[this.content.length - 1].length >= CPUTerminal.MAX_COLS || character === 0x0A) {
+            if(character !== 0x0A) {
                 this.content[this.content.length - 1] += "\n";
             }
             // Add a new row
@@ -137,8 +139,7 @@ export class CPUTerminal extends LitElement {
 
     static styles = css`
     :root {
-        color: var(--fg-color, white);
-        background-color: var(--bg-color, #333);
+        
     }
     
     .terminal {
@@ -154,8 +155,8 @@ export class CPUTerminal extends LitElement {
         font-family: var(--font-family, monospace);
         font-weight: normal;
         // text-transform: uppercase;
-        background-color: #333; 
-        color: white;
+        background-color: var(--bg-color, #333);
+        color: var(--fg-color, white);
         width: 40ch;
         height: calc(31em + var(--padding-block) + var(--padding-block));
         overflow: hidden;        
@@ -316,6 +317,7 @@ export class CPUTerminal extends LitElement {
         text-shadow: 2.6208764473832513px 0 1px rgba(0,30,255,0.5), -2.6208764473832513px 0 1px rgba(255,0,80,0.3), 0 0 3px;
         }
     }
+
     .Xterminal::after {
         content: " ";
         display: block;
@@ -330,6 +332,19 @@ export class CPUTerminal extends LitElement {
         pointer-events: none;
         animation: flicker 0.5s infinite;
     }
+
+    .terminal::after {
+        content: '';
+        background: transparent top left no-repeat url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/86186/crt.png);
+        background-size: 100% 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        pointer-events: none;
+    }
+
     .terminal::before {
         content: " ";
         display: block;

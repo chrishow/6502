@@ -185,8 +185,48 @@ body {
 .display {
   margin-top: 1em;
 }
-.terminal {
+cpu-terminal {
   --font-family: "Apple ][";
+  --bg-color: #333;
+  --fg-color: white;
+}
+.asm,
+.hex,
+.info {
+  word-wrap: break-word;
+  white-space: pre;
+  --padding-block: 1em;
+  --padding-inline: 1ch;
+  padding: var(--padding-block) var(--padding-inline);
+  font-size: 14px;
+  line-height: 1.5;
+  position: relative;
+  font-family: "Apple ][", var(--font-family, monospace);
+  font-weight: normal;
+  background-color: var(--bg-color, #333);
+  color: var(--fg-color, white);
+  width: 40ch;
+  height: calc(31em + var(--padding-block) + var(--padding-block));
+  overflow: auto;
+  resize: none;
+}
+.hex {
+  margin-left: 1em;
+  border: 1px #111 solid;
+  white-space: normal;
+  font-weight: normal;
+  width: 28ch;
+  display: inline-block;
+}
+.hex b {
+  color: red;
+}
+.hex i {
+  color: green;
+  font-style: normal;
+}
+.info {
+  height: calc(5em + var(--padding-block) + var(--padding-block));
 }
 /*! modern-normalize v2.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
 /*# sourceMappingURL=styles.css.map */

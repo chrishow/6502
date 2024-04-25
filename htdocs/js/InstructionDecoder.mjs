@@ -1,3 +1,5 @@
+import { Assembler } from "./Assembler.mjs";
+
 export class InstructionDecoder {
     static opcodes = [
         //          0                1                2             3             4                 5                 6                 7             8                9                A                B             C                D                E                F
@@ -33,6 +35,64 @@ export class InstructionDecoder {
         const highByte = (opcode >> 4) & 0xF;
 
         return InstructionDecoder.opcodes[highByte][lowByte];
+    }
+
+    /**
+     * Is the token a 6502 instruction? 
+     * @param {String} token 
+     * @returns {boolean}
+     */
+    static isInstruction(token) {
+        const instructionArray = InstructionDecoder.getInstructionArray();
+        return instructionArray[token] != undefined;
+    }
+
+    /**
+     * Get the array of 6502 instructions
+     * @returns {Array<string>} instructions
+     */
+    static getInstructionArray() {
+        if(!InstructionDecoder.instructionArray) {
+            InstructionDecoder.buildInstructionArray();
+        }
+
+        return InstructionDecoder.instructionArray;
+    }
+
+    /**
+     * Build the array of intructions from the opcodes static property
+     */
+    static buildInstructionArray() {
+        InstructionDecoder.instructionArray = [];
+
+        InstructionDecoder.opcodes.forEach((row, rowIndex) => {
+            row.forEach((opcode, colIndex) => {
+                if(InstructionDecoder.instructionArray[opcode[0]] === undefined && opcode[0] !== null) {
+                    InstructionDecoder.instructionArray[opcode[0]] = [];
+                }
+                if(opcode[1] !== null) {
+                    InstructionDecoder.instructionArray[opcode[0]][opcode[1]] = (rowIndex * 16) + colIndex;
+                }
+            });
+        });
+    }
+
+    /**
+     * Look up instruction and mode and return the opcode
+     * 
+     * @param {String} instruction 
+     * @param {String} mode 
+     * @returns {Integer} opcode
+     */
+    static getOpcode(instruction, mode) {
+        const instructionArray = InstructionDecoder.getInstructionArray();
+        if(instructionArray[instruction] != undefined) {
+            if(instructionArray[instruction][mode] != undefined) {
+                return instructionArray[instruction][mode];
+            }
+        }
+
+        throw new Error(`Opcode not found for instruction '${instruction}' mode '${mode}'`);
     }
 
 }

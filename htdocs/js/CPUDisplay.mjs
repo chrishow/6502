@@ -160,7 +160,7 @@ export class CPUDisplay extends LitElement {
         let i, j = 0;
 
         for(i = 0; i < 8; i++) {
-            memDisplay.push(html`0x${CPUDisplay.formatWord(offset + (i*8)+j)}: `);
+            memDisplay.push(html`0x${CPUDisplay.formatWord( offset + (i * 8))}: `);
             for(j = 0; j < 8; j++) {
                 let addr = offset + (i*8)+j;
                 if(this.registers.pc == addr) {

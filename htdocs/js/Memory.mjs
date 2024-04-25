@@ -4,6 +4,16 @@ export class Memory {
     constructor() {
         this.initMemory();
 
+        // Patch missing Array.findLastIndex
+        if (!Array.prototype.findLastIndex) {
+            Array.prototype.findLastIndex = function (callback, thisArg) {
+                for (let i = this.length - 1; i >= 0; i--) {
+                    if (callback.call(thisArg, this[i], i, this)) return i;
+                    }
+                return -1;
+            };
+        }
+
         return this;
     }
 
@@ -35,7 +45,9 @@ export class Memory {
         });
 
         if(foundPatch > -1) {
-            this._patches[foundPatch].writeCallback(location, value);
+            if(typeof this._patches[foundPatch].writeCallback == 'function') {
+                this._patches[foundPatch].writeCallback(location, value);
+            }
         } else {
             this._mem[location] = value;
         }
@@ -46,6 +58,20 @@ export class Memory {
         bytes.forEach(byte => {
             this.writeByte(start++, parseInt(byte, 16));
         });
+    }
+
+
+    async binaryLoad(start, url) {
+        const response = await fetch(url);
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        // console.log(bytes);
+        
+        bytes.forEach(byte => {
+            // console.log(`start: ${start.toString(16).padStart(4, '0').toUpperCase()}, byte: ${byte.toString(16).padStart(4, '0').toUpperCase()}`);
+            this.writeByte(start++, byte);
+        });
+        console.log(`Loaded ${bytes.length} bytes from '${url}'`);
     }
 
     addPatch(patch) {

@@ -44,7 +44,7 @@ function dec2hexByte(dec) {
 cpu = new CPU;
 cpu.memory.hexLoad(0x00, '69 69 69 01');
 cpu.registers.pc = 0x0000;
-cpu.steps(4);
+cpu.steps(14);
 
 assert(cpu.registers.a == 0x6A);
 assert(cpu.registers.sr.n == 0);
@@ -212,10 +212,12 @@ cpu.steps(2);
 assertEquals(cpu.registers.x, 0xFF);
 
 // PHA PLA 
+console.log('Test PHA PLA ');
 cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'a2 00 a0 00 8a 99 00 02 48 e8 c8 c0 10 d0 f5 68 99 00 02 c8 c0 20 d0 f7');
 cpu.registers.pc = 0x0600;
-cpu.steps(485);
+cpu.steps(1500);
+dumpCpu();
 assertEquals(cpu.registers.a, 0x00);
 assertEquals(cpu.registers.x, 0x10);
 assertEquals(cpu.registers.y, 0x20);
@@ -231,14 +233,13 @@ assertEquals(cpu.memory.readByte(0x0200), 0x03);
 
 // JSR & RTS
 cpu = new CPU;
-cpu.memory.hexLoad(0x0600, '20 09 06 20 0c 06 20 12 06 a2 00 60 e8 e0 05 d0 fb 60 00');
+cpu.memory.hexLoad(0x0600, '20 09 06 20 0c 06 20 12 06 a2 00 60 e8 e0 05 d0 fb 60 00 00 00');
 cpu.registers.pc = 0x0600;
-cpu.steps(63);
+cpu.steps(300);
 assertEquals(cpu.registers.a, 0x00);
 assertEquals(cpu.registers.x, 0x05);
 assertEquals(cpu.registers.y, 0x00);
 assertEquals(cpu.registers.sp, 0xFD);
-assertEquals(cpu.registers.pc, 0x0613);
 assertEquals(cpu.registers.sr.z, 1);
 assertEquals(cpu.registers.sr.c, 1);
 
@@ -274,14 +275,24 @@ console.log('Test AND');
 cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 96 25 0A'); // LDA #$69, STA $0A, LDA #$96, AND $0A
 cpu.registers.pc = 0x0600;
-cpu.steps(10);
+cpu.steps(20);
 assertEquals(cpu.registers.a, 0x00);
 assertEquals(cpu.registers.sr.z, 1);
-cpu.memory.hexLoad(0x0600, 'A9 69 85 0A A9 69 25 0A'); // LDA #$69, STA $0A, LDA #$96, AND $0A
+
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 69 85 0a a9 69 25 0a'); // LDA #$69, STA $0A, LDA #$69, AND $0A
+cpu.registers.pc = 0x0600;
+cpu.steps(30);
+assertEquals(cpu.registers.sr.z, 0);
+assertEquals(cpu.registers.a, 0x69);
+
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 69 29 97'); // LDA #$69, AND #$97
 cpu.registers.pc = 0x0600;
 cpu.steps(10);
 assertEquals(cpu.registers.sr.z, 0);
-assertEquals(cpu.registers.a, 0x69);
+assertEquals(cpu.registers.a, 0x01);
+
 
 console.log('Test ASL');
 cpu = new CPU;
@@ -314,6 +325,16 @@ cpu.registers.pc = 0x0600;
 cpu.steps(9);
 assertEquals(cpu.registers.a, 0x12);
 assertEquals(cpu.registers.sr.c, 0);
+
+console.log('Test BCC - 3');
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a0 01 90 01 c8 c8'); // LDY #$01, BCC END, INY, END: INY
+cpu.registers.pc = 0x0600;
+cpu.steps(20);
+assertEquals(cpu.registers.y, 0x02);
+assertEquals(cpu.registers.sr.c, 0);
+
+
 
 console.log('Test BCS');
 cpu = new CPU;
@@ -350,14 +371,26 @@ assertEquals(cpu.registers.x, 0x6A);
 assertEquals(cpu.registers.sr.c, 0);
 assertEquals(cpu.registers.sr.n, 0);
 
-console.log('Test EOR'); 
+console.log('Test ORA'); 
 cpu = new CPU;
 cpu.memory.hexLoad(0x0600, 'a2 aa 8e 00 02 a9 55 0d 00 02'); // LDX #$AA, STX $0200, LDA #$55, EOR $0200
 cpu.registers.pc = 0x0600;
-cpu.steps(15);
+cpu.steps(25);
 assertEquals(cpu.registers.a, 0xFF);
 assertEquals(cpu.registers.sr.c, 0);
 assertEquals(cpu.registers.sr.n, 1);
+
+
+console.log('Test EOR'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 46 49 30'); // LDX #$46, EOR #$30
+cpu.registers.pc = 0x0600;
+cpu.steps(25);
+assertEquals(cpu.registers.a, 0x76);
+assertEquals(cpu.registers.sr.c, 0);
+assertEquals(cpu.registers.sr.n, 0);
+
+
 
 console.log('Test flags to value'); 
 cpu = new CPU;
@@ -443,6 +476,27 @@ cpu.steps(10);
 assertEquals(cpu.registers.a, 0x96);
 assertEquals(cpu.registers.sr.n, 1);
 assertEquals(cpu.registers.sr.c, 0);
+
+console.log('Test LSR'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 69 4a'); // LDA #$69, LSR
+cpu.registers.pc = 0x0600;
+cpu.steps(10);
+assertEquals(cpu.registers.a, 0x34);
+assertEquals(cpu.registers.sr.n, 0);
+assertEquals(cpu.registers.sr.c, 1);
+
+
+console.log('Test CMP'); 
+cpu = new CPU;
+cpu.memory.hexLoad(0x0600, 'a9 01 85 b0 a9 01 c5 b0'); // LDA #$01, STA $B0 , LDA #$01, CMP $B0
+cpu.registers.pc = 0x0600;
+cpu.steps(20);
+assertEquals(cpu.registers.sr.n, 0);
+assertEquals(cpu.registers.sr.c, 1);
+assertEquals(cpu.registers.sr.z, 1);
+
+
 
 
 

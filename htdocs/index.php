@@ -18,6 +18,9 @@
 	<div class='terminal'></div>
 
 
-    <script src='/js/scripts-dist.js?v=<?= filemtime('js/scripts-dist.js') ?>' type=module></script>
+    <script src='/js/scripts-dist.js?v=<?= filemtime('js/scripts-dist.js') ?>'></script>
+	<script>
+		runCPU();
+	</script>
 </body>
 </html>
