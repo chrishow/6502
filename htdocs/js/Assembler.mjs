@@ -84,14 +84,19 @@ export class Assembler {
                 }
 
                 if(parseMode === 'operand') {
-                    // Last was instruction, must be operand
-                    const decodedOperand = Assembler.decodeAddressMode(tokens[tokenIndex-1].token, token, symbols, labels, currentAddress);
-                    console.log(`${tokens[tokenIndex-1].token} ${decodedOperand.operand} ${decodedOperand.mode}`);
+                    // console.log(`${tokens[tokenIndex-1].token} ${decodedOperand.operand} ${decodedOperand.mode}`);
+                    try {
+                        // Last was instruction, must be operand
+                        const decodedOperand = Assembler.decodeAddressMode(tokens[tokenIndex-1].token, token, symbols, labels, currentAddress);
 
-                    const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex-1].token, decodedOperand.mode);
-                    console.log(`${tokens[tokenIndex-1].token} ${decodedOperand.mode} : ${opcode}`);
-                    outputLines.push(`<b>${opcode.toString(16).padStart(2, '0').toUpperCase()}</b> ${decodedOperand.operand}<br>`);
-                    currentAddress += decodedOperand.bytes;
+                        const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex-1].token, decodedOperand.mode);
+                        console.log(`${tokens[tokenIndex-1].token} ${decodedOperand.mode} : ${opcode}`);
+                        outputLines.push(`<b>${opcode.toString(16).padStart(2, '0').toUpperCase()}</b> ${decodedOperand.operand}<br>`);
+
+                        currentAddress += decodedOperand.bytes;
+                    } catch(e) {
+                        throw new Error(`${e}: ${line}`);
+                    }
 
                     parseMode = undefined;
                     return;
@@ -102,8 +107,12 @@ export class Assembler {
                     if(tokenIndex === tokens.length - 1) {
                         // This is the last token
                         console.log(`${token} (IMPL)`);
-                        const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex].token, 'IMPL');
-                        outputLines.push(`<b>${opcode.toString(16).padStart(2, '0').toUpperCase()}</b><br>`);
+                        try {
+                            const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex].token, 'IMPL');                            
+                            outputLines.push(`<b>${opcode.toString(16).padStart(2, '0').toUpperCase()}</b><br>`);
+                        } catch(e) {
+                            throw new Error(`${e}: ${line}`);
+                        }
                         currentAddress += 1;
                     } else {
                         parseMode = 'operand';
@@ -129,7 +138,7 @@ export class Assembler {
             let match;
 
             if((match = regex.exec(line)) !== null) {
-                console.log('match: ', match);
+                // console.log('match: ', match);
                 const type = match[1];
                 const sourceAddress = match[2];
                 const labelName = match[3];
@@ -184,15 +193,26 @@ export class Assembler {
     static decodeAddressMode(instruction, operand, symbols, labels, currentAddress) {
         let regex, match;
 
-        // literal symbol
-        if(match = /(#)(?:([a-z]+|[A-Z]+|[0-9]+|_))+$/g.exec(operand)) {
-            // console.log(`Operand '${operand}' appears to be a symbol`);
-            if(symbols[match[2]] !== undefined) { // Symbol found in symbols
-                operand = `#${symbols[match[2]]}`;
-            } else {
-                throw new Error(`Symbol '${match[2]}' has not been defined!`);
-            }
+
+        // Character literal
+        if(match = /'(\S)'/g.exec(operand)) {
+            // console.log(`Operand '${operand}' is a character literal`);
+            // Replace the character with its ASCII code
+            operand = `#\$${match[1].charCodeAt(0).toString(16).toUpperCase()}`;
         }
+
+
+
+        // literal symbol
+        if(match = /^#(?!$[0-9A-Fa-f]{1,4}$)(\w+)$/g.exec(operand)) {
+        // console.log(`Operand '${operand}' appears to be a symbol`);
+        console.log('match literal symbol: ', match);
+        if(symbols[match[1]] !== undefined) { // Symbol found in symbols
+            operand = `#${symbols[match[1]]}`;
+        } else {
+            throw new Error(`Symbol '${match[1]}' has not been defined!`);
+        }
+    }
 
         // console.log('operand: ', operand);
 
@@ -256,18 +276,37 @@ export class Assembler {
                     bytes: 2
                 }                
             } 
-        } else if(instruction === 'JMP') {
+        } else if(instruction === 'JMP' || instruction === 'JSR') {
             if(match = /(?:([a-z]+|[A-Z]+|[0-9]+|_))+$/g.exec(operand)) {
                 console.log(`Operand '${operand}' appears to be a label`);
-                // We will have to deal with this later!
                 return {
                     mode: 'ABS',
                     operand: `__LABEL_ABS_${currentAddress.toString(16).padStart(4, '0').toUpperCase()}__` + operand,
                     bytes: 3
                 }                
-            } else {
-                throw new Error(`JMP indirect not implemented yet`);
+            } else if(match = /^\$([0-9A-Fa-f]{3,4})$/g.exec(operand)) {
+                return {
+                    mode: 'ABS',
+                    operand: Assembler.formatOperand(match[1].substring(1)),
+                    bytes: 3
+                }
+            } else if(match = /\((?:([a-z]+|[A-Z]+|[0-9]+|_))+\)$/g.exec(operand)) { // IND label
+                console.log(`Operand '${operand}' appears to be a IND label`);
+                return {
+                    mode: 'IND',
+                    operand: `__LABEL_ABS_${currentAddress.toString(16).padStart(4, '0').toUpperCase()}__` + match[1],
+                    bytes: 3
+                }                
+            } else if(match = /^\(\$([0-9A-Fa-f]{3,4})\)$/g.exec(operand)) { // IND literal
+                return {
+                    mode: 'IND',
+                    operand: Assembler.formatOperand(match[1].substring(1)),
+                    bytes: 3
+                }
             }
+            
+            throw new Error(`JMP mode not implemented yet`);
+
         } else {
             // naked byte
             regex = /^\$[0-9A-Fa-f]{1,2}$/;
@@ -290,7 +329,55 @@ export class Assembler {
             }
         }
 
-        
+        // Absolute symbol
+        if(match = /^([a-zA-Z0-9]+)$/g.exec(operand)) {
+            console.log(`Operand '${operand}' appears to be a symbol`);
+            if(symbols[match[1]] !== undefined) { // Symbol found in symbols
+                operand = `${symbols[match[1]]}`;
+                console.log(`Operand is now ${operand}`);
+            } else {
+                throw new Error(`Symbol '${match[1]}' has not been defined!`);
+            }
+        }
+
+        if(match = /^\$[0-9A-Fa-f]{3,4}$/g.exec(operand)) {
+            // console.log('match ABS: ', match);
+            return {
+                mode: 'ABS',
+                operand: Assembler.formatOperand(operand),
+                bytes: 3
+            }
+        }
+    
+        if(match = /^\$[0-9A-Fa-f]{1,2}$/g.exec(operand)) {
+            // console.log('match ZPG: ', match);
+            return {
+                mode: 'ZPG',
+                operand: Assembler.formatOperand(operand),
+                bytes: 3
+            }
+        }
+
+        // XIND symbol
+        if(match = /^\(((?![$][0-9A-Fa-f]{4}$)\w+),X\)/gm.exec(operand)) {
+            console.log('XIND symbol match: ', match);
+            if(symbols[match[1]] !== undefined) { // Symbol found in symbols
+                operand = `(${symbols[match[1]]},X)`;
+            } else {
+                throw new Error(`Symbol '${match[1]}' has not been defined!`);
+            }
+        }
+
+        // XIND literal
+        if(match = /^\((\$[0-9A-Fa-f]{1,2}),X\)$/g.exec(operand)) {
+            console.log('match (ZPG,X): ', match);
+            return {
+                mode: 'XIND',
+                operand: Assembler.formatOperand(match[1]),
+                bytes: 2
+            }
+        }
+    
 
         return {
             mode: '??',
@@ -332,8 +419,8 @@ export class Assembler {
     }
 
     static getRelativeAddress(sourceAddress, targetAddress) {
-        console.log('sourceAddress: ', sourceAddress);
-        console.log('targetAddress: ', targetAddress);
+        // console.log('sourceAddress: ', sourceAddress);
+        // console.log('targetAddress: ', targetAddress);
         // Convert the addresses from hex to decimal
         let source = parseInt(sourceAddress, 16);
         let target = parseInt(targetAddress, 16);
@@ -341,14 +428,14 @@ export class Assembler {
         // Calculate the offset
         let offset = target - source - 2; // Subtract 2 because the program counter will have moved on by 2 bytes by the time the offset is added
 
-        console.log('offset: ', offset);
+        // console.log('offset: ', offset);
 
         // Convert the offset to two's complement form
         if (offset < 0) {
             offset = 0x100 + offset; // For negative offsets, add 256 (0x100) to get the two's complement representation
         }
 
-        console.log('offset: ', offset);
+        // console.log('offset: ', offset);
 
         // Convert the offset back to hex
         let hexOffset = offset.toString(16).toUpperCase();
@@ -358,7 +445,7 @@ export class Assembler {
             hexOffset = '0' + hexOffset;
         }
 
-        console.log('hexOffset: ', hexOffset);
+        // console.log('hexOffset: ', hexOffset);
 
         return hexOffset;
     }

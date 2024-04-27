@@ -193,6 +193,7 @@ cpu-terminal {
 .asm,
 .hex,
 .info {
+  border: 1px #888 solid;
   word-wrap: break-word;
   white-space: pre;
   --padding-block: 1em;
@@ -212,7 +213,6 @@ cpu-terminal {
 }
 .hex {
   margin-left: 1em;
-  border: 1px #111 solid;
   white-space: normal;
   font-weight: normal;
   width: 28ch;

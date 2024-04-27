@@ -76,7 +76,7 @@
   __publicField(_InstructionDecoder, "opcodes", [
     //          0                1                2             3             4                 5                 6                 7             8                9                A                B             C                D                E                F
     /* 0 */
-    [["BRK", "IMPL"], ["ORA", "#"], [null, null], [null, null], [null, null], ["ORA", "ZPG"], ["ASL", "ZPG"], [null, null], ["PHP", "IMPL"], ["ORA", "#"], ["ASL", "A"], [null, null], [null, null], ["ORA", "ABS"], ["ASL", "ABS"], [null, null]],
+    [["BRK", "IMPL"], ["ORA", "#"], [null, null], [null, null], [null, null], ["ORA", "ZPG"], ["ASL", "ZPG"], [null, null], ["PHP", "IMPL"], ["ORA", "#"], ["ASL", "IMPL"], [null, null], [null, null], ["ORA", "ABS"], ["ASL", "ABS"], [null, null]],
     /* 1 */
     [["BPL", "REL"], ["ORA", "INDY"], [null, null], [null, null], [null, null], ["ORA", "ZPGX"], ["ASL", "ZPGX"], [null, null], ["CLC", "IMPL"], ["ORA", "ABSY"], [null, null], [null, null], [null, null], ["ORA", "ABSX"], ["ASL", "ABSX"], [null, null]],
     /* 2 */
@@ -168,20 +168,27 @@
             return;
           }
           if (parseMode === "operand") {
-            const decodedOperand = _Assembler.decodeAddressMode(tokens[tokenIndex - 1].token, token, symbols, labels, currentAddress);
-            console.log(`${tokens[tokenIndex - 1].token} ${decodedOperand.operand} ${decodedOperand.mode}`);
-            const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex - 1].token, decodedOperand.mode);
-            console.log(`${tokens[tokenIndex - 1].token} ${decodedOperand.mode} : ${opcode}`);
-            outputLines.push(`<b>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b> ${decodedOperand.operand}<br>`);
-            currentAddress += decodedOperand.bytes;
+            try {
+              const decodedOperand = _Assembler.decodeAddressMode(tokens[tokenIndex - 1].token, token, symbols, labels, currentAddress);
+              const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex - 1].token, decodedOperand.mode);
+              console.log(`${tokens[tokenIndex - 1].token} ${decodedOperand.mode} : ${opcode}`);
+              outputLines.push(`<b>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b> ${decodedOperand.operand}<br>`);
+              currentAddress += decodedOperand.bytes;
+            } catch (e) {
+              throw new Error(`${e}: ${line}`);
+            }
             parseMode = void 0;
             return;
           }
           if (InstructionDecoder.isInstruction(token)) {
             if (tokenIndex === tokens.length - 1) {
               console.log(`${token} (IMPL)`);
-              const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex].token, "IMPL");
-              outputLines.push(`<b>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b><br>`);
+              try {
+                const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex].token, "IMPL");
+                outputLines.push(`<b>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b><br>`);
+              } catch (e) {
+                throw new Error(`${e}: ${line}`);
+              }
               currentAddress += 1;
             } else {
               parseMode = "operand";
@@ -195,7 +202,6 @@
         const regex = /.+[A-F0-9]*.+__LABEL_(REL|ABS)_([A-F0-9]+)__(\w+)/;
         let match;
         if ((match = regex.exec(line)) !== null) {
-          console.log("match: ", match);
           const type = match[1];
           const sourceAddress = match[2];
           const labelName = match[3];
@@ -238,11 +244,15 @@
     }
     static decodeAddressMode(instruction, operand, symbols, labels, currentAddress) {
       let regex, match;
-      if (match = /(#)(?:([a-z]+|[A-Z]+|[0-9]+|_))+$/g.exec(operand)) {
-        if (symbols[match[2]] !== void 0) {
-          operand = `#${symbols[match[2]]}`;
+      if (match = /'(\S)'/g.exec(operand)) {
+        operand = `#$${match[1].charCodeAt(0).toString(16).toUpperCase()}`;
+      }
+      if (match = /^#(?!$[0-9A-Fa-f]{1,4}$)(\w+)$/g.exec(operand)) {
+        console.log("match literal symbol: ", match);
+        if (symbols[match[1]] !== void 0) {
+          operand = `#${symbols[match[1]]}`;
         } else {
-          throw new Error(`Symbol '${match[2]}' has not been defined!`);
+          throw new Error(`Symbol '${match[1]}' has not been defined!`);
         }
       }
       regex = /^#\$[0-9A-Fa-f]{1,2}$/;
@@ -293,7 +303,7 @@
             bytes: 2
           };
         }
-      } else if (instruction === "JMP") {
+      } else if (instruction === "JMP" || instruction === "JSR") {
         if (match = /(?:([a-z]+|[A-Z]+|[0-9]+|_))+$/g.exec(operand)) {
           console.log(`Operand '${operand}' appears to be a label`);
           return {
@@ -301,9 +311,27 @@
             operand: `__LABEL_ABS_${currentAddress.toString(16).padStart(4, "0").toUpperCase()}__` + operand,
             bytes: 3
           };
-        } else {
-          throw new Error(`JMP indirect not implemented yet`);
+        } else if (match = /^\$([0-9A-Fa-f]{3,4})$/g.exec(operand)) {
+          return {
+            mode: "ABS",
+            operand: _Assembler.formatOperand(match[1].substring(1)),
+            bytes: 3
+          };
+        } else if (match = /\((?:([a-z]+|[A-Z]+|[0-9]+|_))+\)$/g.exec(operand)) {
+          console.log(`Operand '${operand}' appears to be a IND label`);
+          return {
+            mode: "IND",
+            operand: `__LABEL_ABS_${currentAddress.toString(16).padStart(4, "0").toUpperCase()}__` + match[1],
+            bytes: 3
+          };
+        } else if (match = /^\(\$([0-9A-Fa-f]{3,4})\)$/g.exec(operand)) {
+          return {
+            mode: "IND",
+            operand: _Assembler.formatOperand(match[1].substring(1)),
+            bytes: 3
+          };
         }
+        throw new Error(`JMP mode not implemented yet`);
       } else {
         regex = /^\$[0-9A-Fa-f]{1,2}$/;
         if (operand.match(regex)) {
@@ -321,6 +349,45 @@
             bytes: 3
           };
         }
+      }
+      if (match = /^([a-zA-Z0-9]+)$/g.exec(operand)) {
+        console.log(`Operand '${operand}' appears to be a symbol`);
+        if (symbols[match[1]] !== void 0) {
+          operand = `${symbols[match[1]]}`;
+          console.log(`Operand is now ${operand}`);
+        } else {
+          throw new Error(`Symbol '${match[1]}' has not been defined!`);
+        }
+      }
+      if (match = /^\$[0-9A-Fa-f]{3,4}$/g.exec(operand)) {
+        return {
+          mode: "ABS",
+          operand: _Assembler.formatOperand(operand),
+          bytes: 3
+        };
+      }
+      if (match = /^\$[0-9A-Fa-f]{1,2}$/g.exec(operand)) {
+        return {
+          mode: "ZPG",
+          operand: _Assembler.formatOperand(operand),
+          bytes: 3
+        };
+      }
+      if (match = /^\(((?![$][0-9A-Fa-f]{4}$)\w+),X\)/gm.exec(operand)) {
+        console.log("XIND symbol match: ", match);
+        if (symbols[match[1]] !== void 0) {
+          operand = `(${symbols[match[1]]},X)`;
+        } else {
+          throw new Error(`Symbol '${match[1]}' has not been defined!`);
+        }
+      }
+      if (match = /^\((\$[0-9A-Fa-f]{1,2}),X\)$/g.exec(operand)) {
+        console.log("match (ZPG,X): ", match);
+        return {
+          mode: "XIND",
+          operand: _Assembler.formatOperand(match[1]),
+          bytes: 2
+        };
       }
       return {
         mode: "??",
@@ -354,21 +421,16 @@
       }
     }
     static getRelativeAddress(sourceAddress, targetAddress) {
-      console.log("sourceAddress: ", sourceAddress);
-      console.log("targetAddress: ", targetAddress);
       let source = parseInt(sourceAddress, 16);
       let target = parseInt(targetAddress, 16);
       let offset = target - source - 2;
-      console.log("offset: ", offset);
       if (offset < 0) {
         offset = 256 + offset;
       }
-      console.log("offset: ", offset);
       let hexOffset = offset.toString(16).toUpperCase();
       while (hexOffset.length < 2) {
         hexOffset = "0" + hexOffset;
       }
-      console.log("hexOffset: ", hexOffset);
       return hexOffset;
     }
   };
