@@ -211,15 +211,17 @@ cpu-terminal {
   overflow: auto;
   resize: none;
 }
+.asm {
+  margin-right: 1em;
+}
 .hex {
-  margin-left: 1em;
   white-space: normal;
   font-weight: normal;
   width: 28ch;
   display: inline-block;
 }
 .hex b {
-  color: red;
+  color: blue;
 }
 .hex i {
   color: green;
@@ -227,6 +229,7 @@ cpu-terminal {
 }
 .info {
   height: calc(5em + var(--padding-block) + var(--padding-block));
+  white-space: normal;
 }
 /*! modern-normalize v2.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
 /*# sourceMappingURL=styles.css.map */

@@ -1,0 +1,2 @@
+RewriteEngine On
+RewriteRule ^assembler/$ assembler.php [L]

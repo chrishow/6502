@@ -1,4 +1,5 @@
 import { Assembler } from './Assembler.mjs';
+import { CPU } from './CPU.mjs';
 
 window.runCPU = function() {
 	document.addEventListener("DOMContentLoaded", function () {

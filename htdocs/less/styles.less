@@ -83,12 +83,14 @@ cpu-terminal {
     resize: none;
 }
 
+.asm {
+    margin-right: 1em;
+}
 
 // .asm, .hex {
 // }
 
 .hex {
-    margin-left: 1em;
     white-space: normal;
     font-weight: normal;
     width: 28ch;
@@ -96,7 +98,7 @@ cpu-terminal {
 
 
     b {
-        color: red;
+        color: blue;
     }
 
     i {
@@ -111,4 +113,5 @@ cpu-terminal {
 
 .info {
     height: calc(5em + var(--padding-block) + var(--padding-block));
+    white-space: normal;
 }

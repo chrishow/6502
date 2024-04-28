@@ -8,3 +8,42 @@ https://www.csh.rit.edu/~moffitt/docs/6502.html
 
 Good opcode data:
 http://www.6502.org/tutorials/6502opcodes.html
+
+
+test prog:
+
+symB = $42
+symW = $BEEF
+  
+	CLD			; Implied
+
+	LDX #$FA    ; Immediate
+	LDA #symB	; Immediate symbol
+;	LDY #'X'	; Character literal
+
+;	STX $F00D	; Absolute
+;	STX symW	; Absolute symbol
+
+	STA $F00D,X	; Absolute,X
+	STA symW,X	; Absolute,X symbol
+
+	STA $F00D,Y	; Absolute,Y
+	STA symW,Y	; Absolute,Y symbol
+
+	STX $F0,Y	; ZPG,Y
+	STX symB,Y	; ZPG,Y symbol
+
+	STA $F0,X	; ZPG,X
+	STA symB,X	; ZPG,X symbol
+
+	STA $F0		; ZPG
+	STA symB	; ZPG symbol
+
+	LDA ($F0,X)	 ; XIND
+	LDA (symB,X) ; XIND
+
+	LDA ($F0),Y	 ; INDY
+	LDA (symB),Y ; INDY symbol
+	
+
+	
