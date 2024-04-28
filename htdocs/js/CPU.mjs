@@ -34,7 +34,7 @@ export class CPU {
             options.displayContainer.append(this.display);
         }
 
-        if(options && options.terminalContainer) {
+        if (options && options.terminalContainer) {
             this.terminal = document.createElement('cpu-terminal');
             this.terminal.cpu = this;
 
@@ -48,8 +48,8 @@ export class CPU {
         this.tickCount++;
         this.processTick();
 
-        if(this.isFastForwarding) {
-            for(let i = 0; i < CPU.FAST_FORWARD_CYCLE_BATCH_SIZE; i++) {
+        if (this.isFastForwarding) {
+            for (let i = 0; i < CPU.FAST_FORWARD_CYCLE_BATCH_SIZE; i++) {
                 this.tickCount++;
                 this.processTick();
             }
@@ -57,14 +57,14 @@ export class CPU {
             // this.updateDisplay();
 
             // Do another batch
-            this.newZeroTimeout(this.doTick.bind(this));            
+            this.newZeroTimeout(this.doTick.bind(this));
         } else {
             this.updateDisplay();
 
-            if(this.isRunning) {
+            if (this.isRunning) {
                 // setTimeout(this.doTick.bind(this), 0);
                 this.newZeroTimeout(this.doTick.bind(this));
-            }    
+            }
         }
 
     }
@@ -96,7 +96,7 @@ export class CPU {
      * Do something in response to a clock tick
      */
     processTick() {
-        if(this.subCycleInstructions.length) {
+        if (this.subCycleInstructions.length) {
             // Do the next sub-instruction
             const subCycleInstruction = this.subCycleInstructions.shift();
             subCycleInstruction();
@@ -127,14 +127,14 @@ export class CPU {
                     let operand = {}; // We use an object, so it is passed by reference
                     let value;
 
-                    if(mode !== '#') {
+                    if (mode !== '#') {
                         this.getOperand(mode, operand);
                     }
 
                     this.queueStep(() => {
                         let sum;
 
-                        if(mode === '#') {
+                        if (mode === '#') {
                             this.getOperand(mode, operand);
                             value = operand.value;
                         } else {
@@ -188,12 +188,12 @@ export class CPU {
                     let operand = {};
                     let value;
 
-                    if(mode !== '#') {
+                    if (mode !== '#') {
                         this.getOperand(mode, operand);
                     }
 
                     this.queueStep(() => {
-                        if(mode === '#') {
+                        if (mode === '#') {
                             this.getOperand(mode, operand);
                             value = operand.value;
                         } else {
@@ -215,7 +215,7 @@ export class CPU {
                     let value;
                     this.getOperand(mode, operand);
 
-                    if(mode === 'A') { // Do it to accumulator
+                    if (mode === 'A') { // Do it to accumulator
                         this.queueStep(() => {
                             this.registers.sr.c = this.registers.a >= 0x80 ? 1 : 0;
                             this.registers.a = (this.registers.a << 1) & 0xff;
@@ -243,14 +243,14 @@ export class CPU {
                     this.getOperand(mode, operand); // Only REL supported
 
                     this.queueStep(() => {
-                        if(this.registers.sr.c === 1) { // Carry flag is set, don't branch
+                        if (this.registers.sr.c === 1) { // Carry flag is set, don't branch
                             return;
                         }
 
                         // console.log(`BCC branch to ${CPU.dec2hexByte(operand.value)}`);
-    
-                        this.doBranch(operand.value);                    
-                    });                        
+
+                        this.doBranch(operand.value);
+                    });
                 })();
                 break;
 
@@ -262,11 +262,11 @@ export class CPU {
 
 
                     this.queueStep(() => {
-                        if(this.registers.sr.c === 0) { // Carry flag is clear, don't branch
+                        if (this.registers.sr.c === 0) { // Carry flag is clear, don't branch
                             return;
-                        } 
+                        }
 
-                        this.doBranch(operand.value);                    
+                        this.doBranch(operand.value);
                     });
                 })();
                 break;
@@ -278,12 +278,12 @@ export class CPU {
                     this.getOperand(mode, operand); // Only REL supported
 
                     this.queueStep(() => {
-                        if(this.registers.sr.z === 0) { // Zero flag is not set, don't branch
+                        if (this.registers.sr.z === 0) { // Zero flag is not set, don't branch
                             // console.log(`BEQ,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
                             return;
-                        } 
+                        }
 
-                        this.doBranch(operand.value);                    
+                        this.doBranch(operand.value);
                     });
                 })();
                 break;
@@ -302,7 +302,7 @@ export class CPU {
                         this.registers.sr.n = (value & 0x80) > 0 ? 1 : 0; // Bit 7 of operand 
                         this.registers.sr.v = (value & 0x40) > 0 ? 1 : 0 // Bit 6 of operand
 
-                        if(value & this.registers.a !== 0) {
+                        if (value & this.registers.a !== 0) {
                             // Result is non-zero
                             this.registers.sr.z = 0;
                         } else {
@@ -321,10 +321,10 @@ export class CPU {
 
                     this.queueStep(() => {
 
-                        if(this.registers.sr.n === 0) { // Not negative, don't branch
+                        if (this.registers.sr.n === 0) { // Not negative, don't branch
                             // console.log(`BMI,  z = 1 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
                             return;
-                        } 
+                        }
 
                         this.doBranch(operand.value);
                     });
@@ -339,7 +339,7 @@ export class CPU {
                     this.getOperand(mode, operand); // Only REL supported
 
                     this.queueStep(() => {
-                        if(this.registers.sr.z === 1) { // Zero flag is set, do not branch
+                        if (this.registers.sr.z === 1) { // Zero flag is set, do not branch
                             // console.log(`BNE,  z = 1 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
                             return;
                         }
@@ -356,12 +356,12 @@ export class CPU {
                     this.getOperand(mode, operand); // Only REL supported
 
                     this.queueStep(() => {
-                        if(this.registers.sr.n === 1) { // Negative flag set, don't branch
+                        if (this.registers.sr.n === 1) { // Negative flag set, don't branch
                             // console.log(`BEQ,  z not 0 but ${CPU.dec2hexByte(this.registers.sr.z)}`);
                             return;
-                        } 
+                        }
 
-                        this.doBranch(operand.value);                    
+                        this.doBranch(operand.value);
                     });
                 })();
                 break;
@@ -376,11 +376,11 @@ export class CPU {
                     this.getOperand(mode, operand); // Only REL supported
 
                     this.queueStep(() => {
-                        if(this.registers.sr.v === 1) { // Overflow flag set, don't branch
+                        if (this.registers.sr.v === 1) { // Overflow flag set, don't branch
                             return;
-                        } 
+                        }
 
-                        this.doBranch(operand.value);                    
+                        this.doBranch(operand.value);
                     });
                 });
                 break;
@@ -392,11 +392,11 @@ export class CPU {
 
                     this.queueStep(() => {
 
-                        if(this.registers.sr.v === 0) { // Overflow flag clear, don't branch
+                        if (this.registers.sr.v === 0) { // Overflow flag clear, don't branch
                             return;
-                        } 
-    
-                        this.doBranch(operand.value);                    
+                        }
+
+                        this.doBranch(operand.value);
                     });
                 });
                 break;
@@ -448,7 +448,7 @@ export class CPU {
 
                     this.queueStep(() => {
                         currentValue = (currentValue - 1);
-                        if(currentValue === -1) {
+                        if (currentValue === -1) {
                             currentValue = 0xFF;
                         }
                         this.memory.writeByte(operand.value, currentValue);
@@ -456,7 +456,7 @@ export class CPU {
                     });
 
                 })()
-                break; 
+                break;
 
             case 'DEX': // Decrement X
                 this.queueStep(() => {
@@ -476,19 +476,19 @@ export class CPU {
                 (() => {
                     let operand = {}, value;
 
-                    if(mode !== '#'){
+                    if (mode !== '#') {
                         this.getOperand(mode, operand);
                     }
-                    
+
                     this.queueStep(() => {
-                        if(mode === '#') {
+                        if (mode === '#') {
                             this.getOperand(mode, operand);
                             value = operand.value;
                         } else {
                             value = this.memory.readByte(operand.value);
                         }
                         // console.log(`${CPU.dec2hexByte(this.registers.a)} ^ ${CPU.dec2hexByte(value)} = ${CPU.dec2hexByte(this.registers.a ^ value)}`);
-    
+
                         this.registers.a = (this.registers.a ^ value);
                         this.updateFlags(this.registers.a);
                     });
@@ -512,8 +512,8 @@ export class CPU {
                     });
 
                 })()
-            break;
-                
+                break;
+
             case 'INX': // Increment X
                 this.queueStep(() => {
                     this.registers.x = (this.registers.x + 1) & 0xFF;
@@ -585,52 +585,52 @@ export class CPU {
                 break;
 
             case 'LSR': // Shift One Bit Right (Memory or Accumulator)
-            (() => {
-                let operand = {};
-                let input;
-                this.getOperand(mode, operand);
+                (() => {
+                    let operand = {};
+                    let input;
+                    this.getOperand(mode, operand);
 
-                if(mode === 'A') { // Do it to accumulator
-                    this.queueStep(() => {
-                        // Set carry from bit 0 of input
-                        this.registers.sr.c = (this.registers.a & 1) ? 1 : 0;
-                        // Shift right
-                        this.registers.a = this.registers.a >> 1;
-                        // Update flags
-                        this.updateFlags(this.registers.a);
-                    });
-                } else {
-                    this.queueStep(() => {
-                        input = this.memory.readByte(operand.value);
-                    });
+                    if (mode === 'A') { // Do it to accumulator
+                        this.queueStep(() => {
+                            // Set carry from bit 0 of input
+                            this.registers.sr.c = (this.registers.a & 1) ? 1 : 0;
+                            // Shift right
+                            this.registers.a = this.registers.a >> 1;
+                            // Update flags
+                            this.updateFlags(this.registers.a);
+                        });
+                    } else {
+                        this.queueStep(() => {
+                            input = this.memory.readByte(operand.value);
+                        });
 
-                    this.queueStep(() => {
-                        // Set carry from bit 0 of input
-                        this.registers.sr.c = (input & 1) ? 1 : 0;
-                        // Shift right
-                        input = input >> 1;
-                        // Save back into memory 
-                        this.memory.writeByte(operand.value, input)
-                        // Update flags
-                        this.updateFlags(input);
-                    });
-                }
-            })();
+                        this.queueStep(() => {
+                            // Set carry from bit 0 of input
+                            this.registers.sr.c = (input & 1) ? 1 : 0;
+                            // Shift right
+                            input = input >> 1;
+                            // Save back into memory 
+                            this.memory.writeByte(operand.value, input)
+                            // Update flags
+                            this.updateFlags(input);
+                        });
+                    }
+                })();
             case 'NOP': // No Operation
                 this.queueStep(() => {
                 });
                 break;
-            
+
             case 'ORA': // OR Memory with Accumulator
                 (() => {
                     let operand = {}, value;
 
-                    if(mode !== '#') {
+                    if (mode !== '#') {
                         this.getOperand(mode, operand);
                     }
 
                     this.queueStep(() => {
-                        if(mode === '#') {
+                        if (mode === '#') {
                             this.getOperand(mode, operand);
                             value = operand.value;
                         } else {
@@ -665,7 +665,7 @@ export class CPU {
                     this.pushToStack(flagsByte);
                 });
                 break;
-                
+
             case 'PLA': // Pull from stack onto a
                 // This takes three cycles total, so need to use two here
                 this.queueStep(() => {
@@ -693,18 +693,18 @@ export class CPU {
                     let input;
                     this.getOperand(mode, operand);
 
-                    if(mode === 'A') { // Do it to accumulator
+                    if (mode === 'A') { // Do it to accumulator
                         this.queueStep(() => {
                             input = this.registers.a;
 
                             // Save carry
                             const saveCarry = this.registers.sr.c;
                             // Set carry from bit 7 of input
-                            this.registers.sr.c = (input & (1<< 6)) ? 1 : 0;
+                            this.registers.sr.c = (input & (1 << 6)) ? 1 : 0;
                             // Rotate
                             input = (input << 1) & 0xff;
                             // Rotate in old carry at bit 0
-                            input |= saveCarry; 
+                            input |= saveCarry;
                             // Save back into a 
                             this.registers.a = input;
                             // Update flags
@@ -723,7 +723,7 @@ export class CPU {
                             // Rotate
                             input = (input << 1) & 0xff;
                             // Rotate in old carry at bit 0
-                            input |= saveCarry; 
+                            input |= saveCarry;
                             // Save back into memory 
                             this.memory.writeByte(operand.value, input);
                             // Update flags
@@ -731,15 +731,15 @@ export class CPU {
                         });
                     }
                 })();
-            break;
-                
+                break;
+
             case 'ROR': // Rotate One Bit Right (Memory or Accumulator)
                 (() => {
                     let operand = {};
                     let input;
                     this.getOperand(mode, operand);
 
-                    if(mode === 'A') { // Do it to accumulator
+                    if (mode === 'A') { // Do it to accumulator
                         this.queueStep(() => {
                             input = this.registers.a;
 
@@ -778,7 +778,7 @@ export class CPU {
                     }
                 })();
                 break;
-                
+
             case 'RTI': // Return from Interrupt
                 (() => {
                     let flagsByte, returnAddressLowByte, returnAddressHighByte;
@@ -802,11 +802,11 @@ export class CPU {
                         const currentBreak = this.registers.sr.b; // Need to 'ignore' break for this instruction
                         this.byteToFlags(flagsByte);
                         this.registers.sr.b = currentBreak;
-    
+
                         this.registers.pc = (returnAddressLowByte + (returnAddressHighByte << 8) + 1);
                     });
                 })();
-            break;
+                break;
 
             case 'RTS': // Return from subroutine
                 (() => {
@@ -832,20 +832,20 @@ export class CPU {
 
                 })();
                 break;
-            
+
             case 'SBC': // Subtract Memory from Accumulator with Borrow
                 (() => {
                     let operand = {}; // We use an object, so it is passed by reference
                     let value;
 
-                    if(mode !== '#') {
+                    if (mode !== '#') {
                         this.getOperand(mode, operand);
                     }
 
                     this.queueStep(() => {
                         let result, temp;
 
-                        if(mode === '#') {
+                        if (mode === '#') {
                             this.getOperand(mode, operand);
                             value = operand.value;
                         } else {
@@ -897,21 +897,21 @@ export class CPU {
 
                 })();
                 break;
-                
+
             case 'SEC': // Set carry flag
-                this.queueStep(() => { 
+                this.queueStep(() => {
                     this.registers.sr.c = 1;
                 });
                 break;
 
             case 'SED': // Set decimal flag
-                this.queueStep(() => { 
+                this.queueStep(() => {
                     this.registers.sr.d = 1;
                 });
                 break;
-            
+
             case 'SEI': // Set Interrupt Disable Status
-                this.queueStep(() => { 
+                this.queueStep(() => {
                     this.registers.sr.i = 1;
                 });
                 break;
@@ -965,7 +965,7 @@ export class CPU {
                     this.registers.sp = this.registers.x;
 
                 });
-            break;
+                break;
 
             case 'TYA': // Transfer y to a
                 this.queueStep(() => {
@@ -976,7 +976,7 @@ export class CPU {
                 break;
 
             default:
-                console.error(`Unknown instruction ${instruction}`);                
+                console.error(`Unknown instruction ${instruction}`);
         }
 
     }
@@ -990,7 +990,7 @@ export class CPU {
         let newAddr;
 
         // Operand is 2s complement
-        if (offset > 0x7f) { 
+        if (offset > 0x7f) {
             // A negative offset
             newAddr = (this.registers.pc - (0x100 - offset));
         } else {
@@ -1009,35 +1009,35 @@ export class CPU {
     flagsToByte() {
         let byte = 0;
 
-        if(this.registers.sr.c === 1) {
+        if (this.registers.sr.c === 1) {
             byte += 1;
         }
 
-        if(this.registers.sr.z === 1) {
+        if (this.registers.sr.z === 1) {
             byte += 2;
         }
 
-        if(this.registers.sr.i === 1) {
+        if (this.registers.sr.i === 1) {
             byte += 4;
         }
 
-        if(this.registers.sr.d === 1) {
+        if (this.registers.sr.d === 1) {
             byte += 8;
         }
 
-        if(this.registers.sr.b === 1) {
+        if (this.registers.sr.b === 1) {
             byte += 16;
         }
 
-        if(1) {  // '-' flag, always set
+        if (1) {  // '-' flag, always set
             byte += 32;
         }
 
-        if(this.registers.sr.v === 1) {
+        if (this.registers.sr.v === 1) {
             byte += 64;
         }
 
-        if(this.registers.sr.n === 1) {
+        if (this.registers.sr.n === 1) {
             byte += 128;
         }
 
@@ -1107,14 +1107,14 @@ export class CPU {
     compareRegister(reg, mode) {
         let operand = {}; // We use an object, so it is passed by reference
 
-        if(mode !== '#') {
+        if (mode !== '#') {
             this.getOperand(mode, operand);
         }
 
         this.queueStep(() => {
             let value;
 
-            if(mode === '#') {
+            if (mode === '#') {
                 this.getOperand(mode, operand);
                 value = operand.value;
             } else {
@@ -1122,8 +1122,8 @@ export class CPU {
             }
 
             let result = this.registers[reg] - value;
-            
-            if(result < 0) {
+
+            if (result < 0) {
                 this.registers.sr.c = 0;
             } else {
                 this.registers.sr.c = 1;
@@ -1142,9 +1142,9 @@ export class CPU {
      */
     loadRegister(reg, mode) {
         let operand = {};
-        
 
-        if(mode === '#') { // Must do all this in one cycle
+
+        if (mode === '#') { // Must do all this in one cycle
             this.queueStep(() => {
                 this.getOperand(mode, operand);
                 // console.log(`LD${reg.toUpperCase()} immediate  ${CPU.dec2hexByte(operand.value)}, PC ${CPU.dec2hexWord(this.registers.pc)}`);
@@ -1159,7 +1159,7 @@ export class CPU {
                 // console.log(`LD${reg.toUpperCase()} ${mode} from 0x${CPU.dec2hexByte(operand.value)}`);
                 this.registers[reg] = this.memory.readByte(operand.value);
                 this.updateFlags(this.registers[reg]);
-            });    
+            });
         }
     }
 
@@ -1191,7 +1191,7 @@ export class CPU {
      * @param {*} operand 
      */
     getOperand(mode, operand) {
-        switch(mode) {
+        switch (mode) {
             case '#': // Direct
                 operand.value = this.popByte();
                 break;
@@ -1299,7 +1299,7 @@ export class CPU {
                         operand.value = lowByte + (highByte << 8);
                     });
 
-                    
+
                 })();
                 break;
 
@@ -1320,19 +1320,19 @@ export class CPU {
                     });
 
                     this.queueStep(() => {
-                        srcHighByte = this.memory.readByte((zeroAddrSrc+1) & 0xFF);
+                        srcHighByte = this.memory.readByte((zeroAddrSrc + 1) & 0xFF);
                         // console.log(`srcHighByte: ${CPU.dec2hexByte(srcHighByte)}`);
-                        
+
                         srcAddr = ((srcLowByte + (srcHighByte << 8)) + this.registers.y);
                         // console.log(`srcAddr: ${CPU.dec2hexWord(srcAddr)}`);
 
                         operand.value = srcAddr;
                     });
-                    
+
                 })();
                 break;
 
-                case 'ZPG': // One-byte Zero page address
+            case 'ZPG': // One-byte Zero page address
                 (() => {
                     let lowByte;
 
@@ -1346,7 +1346,7 @@ export class CPU {
                 })();
                 break;
 
-                case 'ZPGX': // One-byte Zero page address indexed by X
+            case 'ZPGX': // One-byte Zero page address indexed by X
                 (() => {
                     let lowByte;
 
@@ -1392,7 +1392,7 @@ export class CPU {
                         console.log(`XIND finalAddress: ${CPU.dec2hexWord(finalAddress)}`);
                         operand.value = finalAddress;
                     });
-                    
+
                 })();
                 break;
 
@@ -1428,7 +1428,7 @@ export class CPU {
     // popWord() {
     //     const lowByte = this.popByte();
     //     const highByte = this.popByte();
-         
+
     //     return lowByte + (highByte << 8);
     // }
 
@@ -1454,7 +1454,7 @@ export class CPU {
     step() {
         // console.log('Step');
 
-        if(this.isRunning) {
+        if (this.isRunning) {
             // Already running
             return;
         }
@@ -1462,13 +1462,13 @@ export class CPU {
         this.doTick();
         this.updateDisplay();
 
-        if(this.display) {
+        if (this.display) {
             this.display.cps = '';
         }
     }
 
     steps(n) {
-        for(let i = 0; i < n; i++) {
+        for (let i = 0; i < n; i++) {
             this.doTick();
         }
         this.updateDisplay();
@@ -1476,7 +1476,7 @@ export class CPU {
 
     start() {
         // console.log('Start');
-        if(this.isRunning) {
+        if (this.isRunning) {
             // Already running
             return;
         }
@@ -1484,7 +1484,7 @@ export class CPU {
         this.startProfiling();
 
         this.isRunning = true;
-        this.doTick();   
+        this.doTick();
     }
 
     fastForward() {
@@ -1507,8 +1507,8 @@ export class CPU {
     initZeroTimeoutQueue() {
         this.timeoutsQueue = [];
 
-        if(typeof window !== 'undefined') {
-            window.addEventListener("message", (event) =>  {
+        if (typeof window !== 'undefined') {
+            window.addEventListener("message", (event) => {
                 if (event.source == window && event.data == 'zeroTimeoutPushed') {
                     event.stopPropagation();
                     if (this.timeoutsQueue.length > 0) {
@@ -1530,7 +1530,7 @@ export class CPU {
         // console.log('pushed fn to timeoutsQueue:', fn);
         this.timeoutsQueue.push(fn);
 
-        if(typeof window !== 'undefined') {
+        if (typeof window !== 'undefined') {
             window.postMessage('zeroTimeoutPushed', "*");
 
         } else {
@@ -1569,12 +1569,12 @@ export class CPU {
     updateProfile() {
         const timeTaken = (performance.now() - this.startTime) / 1000;
         const ticksProcessed = this.tickCount - this.startTicks;
-        if(this.display) {
+        if (this.display) {
             this.display.cps = Math.round(ticksProcessed / timeTaken);
         }
         this.updateDisplay();
     }
-    
+
     stopProfiling() {
         clearInterval(this.profileUpdateIntervalTimer);
     }

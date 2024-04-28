@@ -167,11 +167,9 @@
             if (symbols[match[1]] !== void 0) {
               throw new Error(`Symbol ${match[1]} has already been defined!`);
             } else {
-              console.log(`Added symbol ${match[1]} = ${match[2]}`);
               symbols[match[1]] = match[2];
             }
           } else {
-            console.log("illegal character(s) match", match);
             throw new Error(`Symbol '${match[1]}' contains illegal character(s)`);
           }
           return false;
@@ -194,7 +192,6 @@
           }
           if (token.charAt(token.length - 1) === ":") {
             let trimmedToken = token.slice(0, -1);
-            console.log(`Processing label '${trimmedToken}' at address 0x${currentAddress.toString(16).padStart(4, "0").toUpperCase()}`);
             if (labels[trimmedToken] !== void 0) {
               throw new Error(`Label ${trimmedToken} has already been defined!`);
             } else {
@@ -207,8 +204,7 @@
               const instruction = tokens[tokenIndex - 1].token;
               const decodedOperand = _Assembler.decodeAddressMode(instruction, token, symbols, labels, currentAddress);
               const opcode = InstructionDecoder.getOpcode(instruction, decodedOperand.mode);
-              console.log(`${instruction} ${decodedOperand.mode} : ${opcode}`);
-              outputLines.push(`<b>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b> ${decodedOperand.operand}<br>`);
+              outputLines.push(`<b data-srcline=${lineIndex}>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b> ${decodedOperand.operand}<br>`);
               currentAddress += decodedOperand.bytes;
             } catch (e4) {
               throw new Error(`${e4}: ${lineIndex + 1}: ${line}`);
@@ -220,7 +216,6 @@
             const instruction = tokens[tokenIndex - 1].token;
             let operand = token;
             if (instruction.toUpperCase() === ".WORD") {
-              console.log(`.WORD ${operand}`);
               if (!operand.match(/^\$[0-9A-Fa-f]{4}$/)) {
                 if (symbols[operand] !== void 0) {
                   operand = `${symbols[operand]}`;
@@ -236,7 +231,6 @@
                 return;
               }
             } else if (instruction.toUpperCase() === ".BYTE") {
-              console.log(`.BYTE ${operand}`);
               if (!operand.match(/^\$[0-9A-Fa-f]{2}$/)) {
                 if (symbols[operand] !== void 0) {
                   operand = `${symbols[operand]}`;
@@ -260,7 +254,6 @@
           }
           if (InstructionDecoder.isInstruction(token)) {
             if (tokenIndex === tokens.length - 1) {
-              console.log(`${token} (IMPL)`);
               try {
                 const opcode = InstructionDecoder.getOpcode(tokens[tokenIndex].token, "IMPL");
                 outputLines.push(`<b>${opcode.toString(16).padStart(2, "0").toUpperCase()}</b><br>`);
@@ -280,16 +273,13 @@
         const regex = /__LABEL_(REL|ABS)_([A-F0-9]+)__(\w+)/;
         let match;
         if ((match = regex.exec(line)) !== null) {
-          console.log("match label postprocess: ", match);
           const type = match[1];
           const sourceAddress = match[2];
           const labelName = match[3];
           const labelAddress = labels[labelName];
           if (labelAddress === void 0) {
-            console.log("lables: ", labels);
             throw new Error(`Label '${labelName}' has not been defined!`);
           }
-          console.log(`Replacing '__LABEL_${type}__${labelName}' with ${labelAddress}`);
           switch (type) {
             case "REL":
               const relativeAddress = _Assembler.getRelativeAddress(sourceAddress, labelAddress);
@@ -330,7 +320,6 @@
       operand = _Assembler.substituteCharacterLiterals(operand);
       if (_Assembler.branchOpcodes.includes(instruction)) {
         if (match = /(?:([a-z]+|[A-Z]+|[0-9]+|_))+$/g.exec(operand)) {
-          console.log(`Operand '${operand}' appears to be a label`);
           return {
             mode: "REL",
             operand: `__LABEL_REL_${currentAddress.toString(16).padStart(4, "0").toUpperCase()}__` + operand,
@@ -338,9 +327,7 @@
           };
         }
       } else if (instruction === "JMP" || instruction === "JSR") {
-        console.log(`JMP/JSR`);
         if (match = /(?:([a-z]+|[A-Z]+|[0-9]+|_))+$/g.exec(operand)) {
-          console.log(`Operand '${operand}' appears to be a label (JMP/JSR)`);
           return {
             mode: "ABS",
             operand: `__LABEL_ABS_${currentAddress.toString(16).padStart(4, "0").toUpperCase()}__` + operand,
@@ -483,8 +470,7 @@
       };
     }
     /**
-     * Substitutes character literals with their ASCII values, accounting 
-     * for whether they are decimal or hex. 
+     * Substitutes character literals with their ASCII values in hex
      *  
      * eg: 
      * $'A' -> $41 
@@ -495,11 +481,8 @@
      */
     static substituteCharacterLiterals(line) {
       const newLine = line.replace(/'(.)'/g, function(match, p1) {
-        return "$" + p1.charCodeAt(0).toString(16);
+        return "$" + p1.charCodeAt(0).toString(16).toUpperCase();
       });
-      if (newLine !== line) {
-        console.log(`Substituted character literals in '${line}' to '${newLine}'`);
-      }
       return newLine;
     }
     /**
